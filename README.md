@@ -1,30 +1,48 @@
-# 🐛 Bug Report Form — Vercel + Google Docs
+# Bug Report System — Vercel + Google Docs
 
-A mobile-responsive bug report form that auto-creates a **new Google Doc per sprint** when submitted.
+A bug reporting system with a submission form and live dashboard. Bug reports are saved to **Google Docs per sprint**, with full status and assignee management from the dashboard.
 
 ---
 
-## 📁 Project Structure
+## Features
+
+- Submit bug reports with title, description, priority, assignee, screenshots, and video URL
+- Auto-creates a new Google Doc per sprint; subsequent bugs in the same sprint are appended
+- Live dashboard at `/dashboard.html` — view, filter, and update all bug reports
+- Update bug status (Open → In Progress → Resolved → Closed) directly from the dashboard
+- Update assignee inline from the dashboard
+- Charts for status and priority breakdowns
+- Mobile-responsive form and dashboard
+
+---
+
+## Project Structure
 
 ```
 bug-report/
 ├── public/
-│   └── index.html       ← The form (HTML/CSS/JS)
+│   ├── index.html          ← Bug submission form
+│   └── dashboard.html      ← Bug dashboard (view, filter, update)
 ├── api/
-│   └── submit.js        ← Vercel serverless proxy
-├── Code.gs              ← Google Apps Script (paste into script.google.com)
-├── vercel.json          ← Vercel routing config
+│   ├── submit.ts           ← Vercel serverless: handles new bug submissions
+│   ├── bugs.ts             ← Vercel serverless: fetches all bugs from Google Docs
+│   └── update.ts           ← Vercel serverless: updates status or assignee
+├── src/
+│   ├── env.ts              ← Environment variable loading & validation
+│   └── types.ts            ← Shared TypeScript interfaces
+├── Code.gs                 ← Google Apps Script (paste into script.google.com)
+├── server.ts               ← Local dev server (mimics Vercel routing)
+├── vercel.json             ← Vercel routing config
+├── tsconfig.json
 ├── package.json
 └── README.md
 ```
 
 ---
 
-## 🚀 Deploy in 3 Phases
+## Setup
 
----
-
-### Phase 1 — Google Apps Script
+### Step 1 — Google Apps Script
 
 1. Open [script.google.com](https://script.google.com) → **New Project**
 2. Paste the full contents of `Code.gs`
@@ -37,75 +55,96 @@ bug-report/
    - Type: **Web App**
    - Execute as: **Me**
    - Who has access: **Anyone**
-6. Click **Deploy** → authorize permissions → copy the **Web App URL**
+6. Authorize permissions → copy the **Web App URL**
 
-> ⚠️ Every time you edit Code.gs, create a **New Deployment** (not "Manage existing") to get a fresh working URL.
+> Every time you edit `Code.gs`, create a **New Deployment** (not "Manage existing") to get a fresh working URL.
 
 ---
 
-### Phase 2 — Vercel Deploy
+### Step 2 — Local Development
 
-#### Option A — Vercel CLI (recommended)
+1. Clone/copy this project and install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Create a `.env` file in the project root:
+   ```
+   APPS_SCRIPT_URL=https://script.google.com/macros/s/YOUR_ID/exec
+   PORT=3001
+   ```
+
+3. Start the dev server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open in browser:
+   - Form: `http://localhost:3001/index.html`
+   - Dashboard: `http://localhost:3001/dashboard.html`
+
+---
+
+### Step 3 — Deploy to Vercel
+
+#### Option A — Vercel CLI
 ```bash
 npm i -g vercel
-cd bug-report
 vercel
-# Follow prompts → deploy!
 ```
 
 #### Option B — GitHub + Vercel Dashboard
-1. Push this folder to a GitHub repo
+1. Push this repo to GitHub
 2. Go to [vercel.com](https://vercel.com) → **Add New Project** → import your repo
 3. Framework preset: **Other**
-4. Root directory: `./` (or wherever bug-report folder is)
-5. Click **Deploy**
+4. Click **Deploy**
 
----
-
-### Phase 3 — Set Environment Variable in Vercel
-
-After deploying, add your Apps Script URL as an env var:
+#### Set Environment Variable
+After deploying, add the Apps Script URL:
 
 1. Vercel Dashboard → your project → **Settings → Environment Variables**
 2. Add:
    - **Name:** `APPS_SCRIPT_URL`
-   - **Value:** `https://script.google.com/macros/s/YOUR.../exec`
-   - Environment: **Production** ✓ (and Preview if needed)
-3. Click **Save** → go to **Deployments** → **Redeploy** (so the env var takes effect)
+   - **Value:** `https://script.google.com/macros/s/YOUR_ID/exec`
+   - Environment: **Production** (and Preview if needed)
+3. Click **Save** → **Deployments** → **Redeploy**
 
 ---
 
-## ✅ Test It
+## API Endpoints
 
-1. Open your Vercel URL
-2. Fill in the form with Sprint # e.g. `14` and a Release Date
-3. Submit → check your Google Drive folder
-4. A new doc named **`Sprint-14 Bug Reports (Release 2026-03-28)`** will appear!
-5. Each subsequent submission to the same sprint **appends** to the existing doc
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/submit` | Submit a new bug report |
+| `GET` | `/api/bugs` | Fetch all bugs (supports `?sprint=`, `?status=`, `?priority=`, `?assignee=` filters) |
+| `POST` | `/api/update` | Update a bug's status or assignee |
 
 ---
 
-## 🔁 How Sprint Docs Work
+## Environment Variables
+
+| Variable | Required | Description | Default |
+|----------|----------|-------------|---------|
+| `APPS_SCRIPT_URL` | Yes | Google Apps Script Web App URL | — |
+| `PORT` | No | Local dev server port | `3001` |
+
+---
+
+## How Sprint Docs Work
 
 | Scenario | Result |
-|---|---|
+|----------|--------|
 | First bug for Sprint 14 | New doc created: `Sprint-14 Bug Reports (Release ...)` |
 | Second bug for Sprint 14 | Appended to the existing Sprint-14 doc |
 | First bug for Sprint 15 | New doc created: `Sprint-15 Bug Reports (Release ...)` |
 
 ---
 
-## 🌍 Env Variables Reference
+## npm Scripts
 
-| Variable | Where | Description |
-|---|---|---|
-| `APPS_SCRIPT_URL` | Vercel | Your deployed Google Apps Script web app URL |
-
----
-
-## 📱 Mobile Support
-
-- Fully responsive down to 320px
-- Touch-optimized pill selectors
-- File upload works on iOS & Android
-- Safe area insets for notched phones# bug_reporter_app
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start local dev server on `localhost:3001` |
+| `npm run build` | Compile TypeScript |
+| `npm run typecheck` | Type-check without emitting files |
+| `npm run deploy` | Deploy to Vercel production |
