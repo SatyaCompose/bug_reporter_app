@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Bug Dashboard</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #080a0f;
+            --surface: #0f1117;
+            --surface2: #171a24;
+            --surface3: #1e2130;
+            --border: #252836;
+            --border-focus: #4f6ef7;
+            --accent: #4f6ef7;
+            --accent-dim: rgba(79, 110, 247, 0.12);
+            --accent-glow: rgba(79, 110, 247, 0.2);
+            --red: #f75c6e;
+            --red-dim: rgba(247, 92, 110, 0.12);
+            --green: #34d399;
+            --green-dim: rgba(52, 211, 153, 0.1);
+            --yellow: #fbbf24;
+            --orange: #f97316;
+            --text: #e2e6f0;
+            --text-2: #9099b5;
+            --text-3: #4a5070;
+            --font-head: 'Syne', sans-serif;
+            --font-body: 'DM Sans', sans-serif;
+            --font-mono: 'DM Mono', monospace;
+            --r: 12px;
+            --r-sm: 8px;
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
+            min-height: 100vh
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-image: linear-gradient(rgba(79, 110, 247, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(79, 110, 247, 0.025) 1px, transparent 1px);
+            background-size: 32px 32px
+        }
+
+        /* Topbar */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(8, 10, 15, .88);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 clamp(16px, 4vw, 40px);
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-family: var(--font-head);
+            font-size: 15px;
+            font-weight: 700;
+            text-decoration: none;
+            color: var(--text)
+        }
+
+        .brand-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px
+        }
+
+        .nav-link {
+            font-size: 13px;
+            color: var(--text-2);
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            transition: all .15s var(--ease)
+        }
+
+        .nav-link:hover {
+            color: var(--text);
+            background: var(--surface2)
+        }
+
+        .nav-link.active {
+            color: var(--accent);
+            background: var(--accent-dim)
+        }
+
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            color: var(--text-2);
+            font-size: 12px;
+            padding: 7px 13px;
+            cursor: pointer;
+            transition: all .15s var(--ease)
+        }
+
+        .refresh-btn:hover {
+            border-color: var(--accent);
+            color: var(--text)
+        }
+
+        .refresh-btn .icon {
+            display: inline-block
+        }
+
+        .refresh-btn.spinning .icon {
+            animation: spin .7s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        /* Layout */
+        .page {
+            position: relative;
+            z-index: 1;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: clamp(20px, 3vw, 40px) clamp(16px, 4vw, 40px)
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 28px
+        }
+
+        .page-header h1 {
+            font-family: var(--font-head);
+            font-size: clamp(22px, 3.5vw, 30px);
+            font-weight: 800;
+            letter-spacing: -.025em
+        }
+
+        .last-updated {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 4px
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 18px 20px;
+            position: relative;
+            overflow: hidden;
+            animation: fadeUp .4s var(--ease) both
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px
+        }
+
+        .stat-card.blue::after {
+            background: var(--accent)
+        }
+
+        .stat-card.red::after {
+            background: var(--red)
+        }
+
+        .stat-card.green::after {
+            background: var(--green)
+        }
+
+        .stat-card.amber::after {
+            background: var(--yellow)
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .stat-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            color: var(--text-3);
+            margin-bottom: 8px
+        }
+
+        .stat-value {
+            font-family: var(--font-head);
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -.03em;
+            line-height: 1
+        }
+
+        .stat-sub {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 4px;
+            font-family: var(--font-mono)
+        }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px
+        }
+
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 20px
+        }
+
+        .chart-title {
+            font-family: var(--font-head);
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-2);
+            display: flex;
+            align-items: center;
+            gap: 7px
+        }
+
+        .chart-title::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 2px
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 180px
+        }
+
+        /* Filters */
+        .filters-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 16px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+            margin-bottom: 16px
+        }
+
+        .filter-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            min-width: 120px
+        }
+
+        .filter-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--text-3)
+        }
+
+        .filter-input,
+        .filter-select {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            color: var(--text);
+            font-family: var(--font-body);
+            font-size: 13px;
+            padding: 8px 11px;
+            outline: none;
+            transition: border-color .15s var(--ease);
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%
+        }
+
+        .filter-input::placeholder {
+            color: var(--text-3)
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            border-color: var(--accent)
+        }
+
+        .select-wrap {
+            position: relative
+        }
+
+        .select-wrap::after {
+            content: '⌄';
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-58%);
+            color: var(--text-3);
+            pointer-events: none;
+            font-size: 14px
+        }
+
+        .filter-select {
+            padding-right: 28px
+        }
+
+        .clear-btn {
+            padding: 8px 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            color: var(--text-2);
+            font-size: 12px;
+            font-family: var(--font-body);
+            cursor: pointer;
+            transition: all .15s var(--ease);
+            white-space: nowrap;
+            align-self: flex-end
+        }
+
+        .clear-btn:hover {
+            border-color: var(--red);
+            color: var(--red)
+        }
+
+        /* Table */
+        .table-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            overflow: hidden
+        }
+
+        .table-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: var(--surface2)
+        }
+
+        .table-title {
+            font-family: var(--font-head);
+            font-size: 13px;
+            font-weight: 700
+        }
+
+        .bug-count {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-3)
+        }
+
+        .table-wrap {
+            overflow-x: auto
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 900px
+        }
+
+        thead th {
+            text-align: left;
+            padding: 11px 14px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            color: var(--text-3);
+            border-bottom: 1px solid var(--border);
+            background: var(--surface2);
+            white-space: nowrap
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background .12s var(--ease);
+            animation: fadeUp .3s var(--ease) both
+        }
+
+        tbody tr:hover {
+            background: var(--surface2)
+        }
+
+        tbody tr:last-child {
+            border-bottom: none
+        }
+
+        td {
+            padding: 10px 14px;
+            vertical-align: middle
+        }
+
+        .td-sprint {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--accent);
+            white-space: nowrap
+        }
+
+        .td-title {
+            max-width: 220px
+        }
+
+        .td-title span {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer
+        }
+
+        .td-title span:hover {
+            color: var(--accent)
+        }
+
+        .td-meta {
+            color: var(--text-2);
+            white-space: nowrap;
+            font-size: 12px
+        }
+
+        /* Doc link */
+        .doc-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-3);
+            text-decoration: none;
+            padding: 3px 8px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            transition: all .15s var(--ease);
+            white-space: nowrap
+        }
+
+        .doc-link:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim)
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 100px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap
+        }
+
+        .p-low {
+            background: rgba(52, 211, 153, .1);
+            color: var(--green);
+            border: 1px solid rgba(52, 211, 153, .25)
+        }
+
+        .p-medium {
+            background: rgba(251, 191, 36, .1);
+            color: var(--yellow);
+            border: 1px solid rgba(251, 191, 36, .25)
+        }
+
+        .p-high {
+            background: rgba(249, 115, 22, .1);
+            color: var(--orange);
+            border: 1px solid rgba(249, 115, 22, .25)
+        }
+
+        .p-critical {
+            background: rgba(247, 92, 110, .12);
+            color: var(--red);
+            border: 1px solid rgba(247, 92, 110, .3)
+        }
+
+        .s-open {
+            background: rgba(79, 110, 247, .1);
+            color: var(--accent);
+            border: 1px solid rgba(79, 110, 247, .25)
+        }
+
+        .s-inprogress {
+            background: rgba(251, 191, 36, .1);
+            color: var(--yellow);
+            border: 1px solid rgba(251, 191, 36, .25)
+        }
+
+        .s-resolved {
+            background: rgba(52, 211, 153, .1);
+            color: var(--green);
+            border: 1px solid rgba(52, 211, 153, .25)
+        }
+
+        .s-closed {
+            background: rgba(148, 163, 184, .08);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, .2)
+        }
+
+        /* Inline status select */
+        .status-cell {
+            position: relative;
+            min-width: 135px
+        }
+
+        .status-cell .badge {
+            width: 100%;
+            justify-content: space-between;
+            cursor: pointer;
+            padding-right: 20px;
+            user-select: none
+        }
+
+        .status-select {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            -webkit-appearance: none;
+            appearance: none
+        }
+
+        .cell-spinner {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            display: none;
+            border: 1.5px solid rgba(255, 255, 255, .25);
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin .6s linear infinite
+        }
+
+        .status-cell.updating .cell-spinner {
+            display: block
+        }
+
+        .status-cell.updating .badge {
+            opacity: .6;
+            pointer-events: none
+        }
+
+        .saved-dot {
+            position: absolute;
+            right: -3px;
+            top: -3px;
+            width: 12px;
+            height: 12px;
+            background: var(--green);
+            border-radius: 50%;
+            font-size: 7px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: 900
+        }
+
+        .status-cell.saved .saved-dot {
+            display: flex
+        }
+
+        /* Inline assignee edit */
+        .assignee-cell {
+            position: relative;
+            min-width: 160px
+        }
+
+        .assignee-display {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 4px 7px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-2);
+            border: 1px solid transparent;
+            transition: all .15s;
+            max-width: 190px
+        }
+
+        .assignee-display:hover {
+            border-color: var(--border);
+            background: var(--surface3);
+            color: var(--text)
+        }
+
+        .assignee-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .pen {
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity .15s;
+            flex-shrink: 0
+        }
+
+        .assignee-display:hover .pen {
+            opacity: 1
+        }
+
+        .assignee-edit-wrap {
+            display: none;
+            align-items: center;
+            gap: 4px
+        }
+
+        .assignee-cell.editing .assignee-display {
+            display: none
+        }
+
+        .assignee-cell.editing .assignee-edit-wrap {
+            display: flex
+        }
+
+        .assignee-input {
+            background: var(--surface2);
+            border: 1px solid var(--border-focus);
+            border-radius: 5px;
+            color: var(--text);
+            font-family: var(--font-body);
+            font-size: 12px;
+            padding: 4px 8px;
+            outline: none;
+            width: 145px;
+            box-shadow: 0 0 0 2px var(--accent-glow)
+        }
+
+        .a-save,
+        .a-cancel {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 3px 5px;
+            border-radius: 4px;
+            transition: background .12s;
+            line-height: 1
+        }
+
+        .a-save {
+            color: var(--green)
+        }
+
+        .a-cancel {
+            color: var(--text-3)
+        }
+
+        .a-save:hover {
+            background: rgba(52, 211, 153, .15)
+        }
+
+        .a-cancel:hover {
+            background: var(--surface3)
+        }
+
+        .assignee-cell .cell-spinner {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            display: none;
+            border: 1.5px solid rgba(255, 255, 255, .25);
+            border-top-color: var(--green);
+            border-radius: 50%;
+            animation: spin .6s linear infinite
+        }
+
+        .assignee-cell.updating .assignee-edit-wrap {
+            opacity: .5;
+            pointer-events: none
+        }
+
+        .assignee-cell.updating .cell-spinner {
+            display: block
+        }
+
+        /* Empty/loading */
+        .state-row td {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            font-size: 13px
+        }
+
+        .spinner-ring {
+            width: 32px;
+            height: 32px;
+            margin: 0 auto 12px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite
+        }
+
+        /* Error */
+        .error-banner {
+            display: none;
+            background: var(--red-dim);
+            border: 1px solid rgba(247, 92, 110, .25);
+            border-radius: var(--r-sm);
+            color: #fca5a5;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            padding: 11px 14px;
+            margin-bottom: 16px
+        }
+
+        /* Modal */
+        .modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 10, 15, .88);
+            backdrop-filter: blur(12px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 20px
+        }
+
+        .modal-bg.show {
+            display: flex
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 580px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: pop .3s cubic-bezier(.34, 1.56, .64, 1) both
+        }
+
+        @keyframes pop {
+            from {
+                opacity: 0;
+                transform: scale(.9) translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0)
+            }
+        }
+
+        .modal-top {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            z-index: 1
+        }
+
+        .modal-top-left {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            min-width: 0
+        }
+
+        .modal-title {
+            font-family: var(--font-head);
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            line-height: 1.3;
+            word-break: break-word
+        }
+
+        .modal-doc-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(79, 110, 247, .25);
+            border-radius: 100px;
+            padding: 4px 12px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: #818cf8;
+            text-decoration: none;
+            width: fit-content;
+            transition: all .15s var(--ease)
+        }
+
+        .modal-doc-link:hover {
+            background: rgba(79, 110, 247, .2);
+            border-color: rgba(79, 110, 247, .4)
+        }
+
+        .modal-close-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-2);
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            transition: all .15s var(--ease)
+        }
+
+        .modal-close-btn:hover {
+            border-color: var(--red);
+            color: var(--red)
+        }
+
+        .modal-body {
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px
+        }
+
+        .modal-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px
+        }
+
+        .modal-field-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: .06em
+        }
+
+        .modal-field-value {
+            font-size: 13px;
+            word-break: break-all
+        }
+
+        .modal-desc {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.65;
+            color: var(--text-2);
+            white-space: pre-wrap
+        }
+
+        @media(max-width:600px) {
+            .modal-row {
+                grid-template-columns: 1fr
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        @media(max-width:420px) {
+            .topbar .nav-link {
+                display: none
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="brand">
+                <div class="brand-icon">🐛</div><span>BugTracker</span>
+            </a>
+            <a href="index.html" class="nav-link">Report</a>
+            <a href="dashboard.html" class="nav-link active">Dashboard</a>
+        </div>
+        <button class="refresh-btn" id="refreshBtn"><span class="icon">↻</span> Refresh</button>
+    </header>
+
+    <div class="page">
+        <div class="page-header">
+            <div>
+                <h1>Bug Dashboard</h1>
+                <div class="last-updated" id="lastUpdated">Loading…</div>
+            </div>
+        </div>
+
+        <div class="error-banner" id="errorBanner"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card blue" style="animation-delay:.05s">
+                <div class="stat-label">Total Bugs</div>
+                <div class="stat-value" id="statTotal">—</div>
+                <div class="stat-sub" id="statSprints">across — sprints</div>
+            </div>
+            <div class="stat-card red" style="animation-delay:.1s">
+                <div class="stat-label">Open</div>
+                <div class="stat-value" id="statOpen">—</div>
+                <div class="stat-sub" id="statOpenPct">— of total</div>
+            </div>
+            <div class="stat-card green" style="animation-delay:.15s">
+                <div class="stat-label">Resolved</div>
+                <div class="stat-value" id="statResolved">—</div>
+                <div class="stat-sub" id="statResPct">— of total</div>
+            </div>
+            <div class="stat-card amber" style="animation-delay:.2s">
+                <div class="stat-label">Critical</div>
+                <div class="stat-value" id="statCritical">—</div>
+                <div class="stat-sub">need immediate attention</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">Bugs by Priority</div>
+                <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Bugs by Status</div>
+                <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Open vs Closed</div>
+                <div class="chart-wrap"><canvas id="ratioChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="filters-bar">
+            <div class="filter-field">
+                <div class="filter-label">Sprint</div><input class="filter-input" id="fSprint" placeholder="e.g. 14"
+                    type="number" min="1" />
+            </div>
+            <div class="filter-field">
+                <div class="filter-label">Priority</div>
+                <div class="select-wrap"><select class="filter-select" id="fPriority">
+                        <option value="">All</option>
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                        <option>Critical</option>
+                    </select></div>
+            </div>
+            <div class="filter-field">
+                <div class="filter-label">Status</div>
+                <div class="select-wrap"><select class="filter-select" id="fStatus">
+                        <option value="">All</option>
+                        <option>Open</option>
+                        <option>In Progress</option>
+                        <option>Resolved</option>
+                        <option>Closed</option>
+                    </select></div>
+            </div>
+            <div class="filter-field">
+                <div class="filter-label">Assignee</div><input class="filter-input" id="fAssignee"
+                    placeholder="email or name" />
+            </div>
+            <button class="clear-btn" id="clearBtn">✕ Clear</button>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">Bug Reports</div>
+                <div class="bug-count" id="bugCount">—</div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sprint</th>
+                            <th>Title</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Assignee</th>
+                            <th>Page URL</th>
+                            <th>Doc</th>
+                            <th>Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bugTableBody">
+                        <tr class="state-row">
+                            <td colspan="8">
+                                <div class="spinner-ring"></div>Loading…
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-bg" id="modalBg">
+        <div class="modal">
+            <div class="modal-top">
+                <div class="modal-top-left">
+                    <div class="modal-title" id="modalTitle">—</div>
+                    <a class="modal-doc-link" id="modalDocLink" href="#" target="_blank" rel="noopener"
+                        style="display:none">📄 Open in Google Docs ↗</a>
+                </div>
+                <button class="modal-close-btn" id="modalCloseBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-row">
+                    <div class="modal-field">
+                        <div class="modal-field-label">Sprint</div>
+                        <div class="modal-field-value" id="mSprint">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Release Date</div>
+                        <div class="modal-field-value" id="mRelease">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Reported By</div>
+                        <div class="modal-field-value" id="mReportedBy">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Assignee</div>
+                        <div class="modal-field-value" id="mAssignee">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Priority</div>
+                        <div class="modal-field-value" id="mPriority">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Status</div>
+                        <div class="modal-field-value" id="mStatus">—</div>
+                    </div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-field-label">Page URL</div>
+                    <div class="modal-field-value" id="mPageURL">—</div>
+                </div>
+                <div class="modal-field" id="mVideoWrap" style="display:none">
+                    <div class="modal-field-label">Video URL</div>
+                    <div class="modal-field-value" id="mVideoURL">—</div>
+                </div>
+                <div class="modal-field" id="mSsWrap" style="display:none">
+                    <div class="modal-field-label">Screenshots</div>
+                    <div class="modal-field-value" id="mScreenshots">—</div>
+                </div>
+                <div>
+                    <div class="modal-field-label" style="margin-bottom:6px">Description</div>
+                    <div class="modal-desc" id="mDescription">—</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-field-label">Submitted At</div>
+                    <div class="modal-field-value" id="mSubmittedAt" style="color:var(--text-3);font-size:12px">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── State ──────────────────────────────────────────────────────
+        let allBugs = [];
+        let charts = {};
+        // sprint# → doc URL (from the bug's docUrl field returned by Apps Script)
+        const docUrls = {};
+
+        // ── Fetch ──────────────────────────────────────────────────────
+        async function fetchBugs(filters = {}) {
+            setLoading(true); hideError();
+            const p = new URLSearchParams();
+            if (filters.sprint) p.set("sprint", filters.sprint);
+            if (filters.status) p.set("status", filters.status);
+            if (filters.priority) p.set("priority", filters.priority);
+            if (filters.assignee) p.set("assignee", filters.assignee);
+            try {
+                const res = await fetch("/api/bugs" + (p.toString() ? "?" + p : ""));
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || "API error");
+                allBugs = data.bugs || [];
+                // Collect any docUrl fields returned per bug
+                allBugs.forEach(b => { if (b.docUrl) docUrls[b.sprintNumber] = b.docUrl; });
+                renderAll(allBugs);
+                document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleTimeString("en-IN");
+            } catch (err) {
+                showError("Failed to load: " + err.message); setLoading(false);
+            }
+        }
+
+        function renderAll(bugs) {
+            renderStats(bugs); renderCharts(bugs); renderTable(bugs); setLoading(false);
+        }
+
+        // ── Stats ──────────────────────────────────────────────────────
+        function renderStats(bugs) {
+            const total = bugs.length;
+            const open = bugs.filter(b => b.status === "Open").length;
+            const res = bugs.filter(b => b.status === "Resolved" || b.status === "Closed").length;
+            const crit = bugs.filter(b => b.priority === "Critical").length;
+            const spr = new Set(bugs.map(b => b.sprintNumber)).size;
+            document.getElementById("statTotal").textContent = total;
+            document.getElementById("statSprints").textContent = "across " + spr + " sprint" + (spr !== 1 ? "s" : "");
+            document.getElementById("statOpen").textContent = open;
+            document.getElementById("statOpenPct").textContent = total ? Math.round(open / total * 100) + "% of total" : "—";
+            document.getElementById("statResolved").textContent = res;
+            document.getElementById("statResPct").textContent = total ? Math.round(res / total * 100) + "% of total" : "—";
+            document.getElementById("statCritical").textContent = crit;
+        }
+
+        // ── Charts ─────────────────────────────────────────────────────
+        const AX = {
+            x: { ticks: { color: "#4a5070", font: { family: "'DM Mono'", size: 10 } }, grid: { color: "#252836" } },
+            y: { ticks: { color: "#4a5070", font: { family: "'DM Mono'", size: 10 }, stepSize: 1 }, grid: { color: "#252836" }, beginAtZero: true }
+        };
+
+        function buildBar(id, labels, data, bgs, borders) {
+            if (charts[id]) charts[id].destroy();
+            charts[id] = new Chart(document.getElementById(id), {
+                type: "bar",
+                data: { labels, datasets: [{ data, backgroundColor: bgs, borderColor: borders, borderWidth: 1.5, borderRadius: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: AX }
+            });
+        }
+
+        function buildDoughnut(id, labels, data, bgs, borders) {
+            if (charts[id]) charts[id].destroy();
+            charts[id] = new Chart(document.getElementById(id), {
+                type: "doughnut",
+                data: { labels, datasets: [{ data, backgroundColor: bgs, borderColor: borders, borderWidth: 1.5, hoverOffset: 6 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: "65%",
+                    plugins: { legend: { position: "bottom", labels: { color: "#9099b5", font: { family: "'DM Mono'", size: 11 }, boxWidth: 10, padding: 16 } } }
+                }
+            });
+        }
+
+        function renderCharts(bugs) {
+            const pL = ["Low", "Medium", "High", "Critical"];
+            const pBg = ["rgba(52,211,153,.7)", "rgba(251,191,36,.7)", "rgba(249,115,22,.7)", "rgba(247,92,110,.7)"];
+            const pBr = ["#34d399", "#fbbf24", "#f97316", "#f75c6e"];
+            buildBar("priorityChart", pL, pL.map(p => bugs.filter(b => b.priority === p).length), pBg, pBr);
+
+            const sL = ["Open", "In Progress", "Resolved", "Closed"];
+            const sBg = ["rgba(79,110,247,.7)", "rgba(251,191,36,.7)", "rgba(52,211,153,.7)", "rgba(148,163,184,.5)"];
+            const sBr = ["#4f6ef7", "#fbbf24", "#34d399", "#94a3b8"];
+            buildBar("statusChart", sL, sL.map(s => bugs.filter(b => b.status === s).length), sBg, sBr);
+
+            const openN = bugs.filter(b => b.status === "Open" || b.status === "In Progress").length;
+            const closedN = bugs.filter(b => b.status === "Resolved" || b.status === "Closed").length;
+            buildDoughnut("ratioChart", ["Open / In Progress", "Resolved / Closed"], [openN, closedN],
+                ["rgba(247,92,110,.75)", "rgba(52,211,153,.75)"], ["#f75c6e", "#34d399"]);
+        }
+
+        // ── Table ───────────────────────────────────────────────────────
+        function esc(s) { const d = document.createElement("div"); d.textContent = String(s ?? ""); return d.innerHTML; }
+        function shorten(s, n) { return s && s.length > n ? s.slice(0, n) + "…" : s || ""; }
+
+        function sClass(s) { return { Open: "s-open", "In Progress": "s-inprogress", Resolved: "s-resolved", Closed: "s-closed" }[s] || ""; }
+        function pBadge(p) { return `<span class="badge ${{ "Low": "p-low", "Medium": "p-medium", "High": "p-high", "Critical": "p-critical" }[p] || ""}">${esc(p || "—")}</span>`; }
+        function sBadge(s) { return `<span class="badge ${sClass(s)}">${esc(s || "—")}</span>`; }
+
+        function renderTable(bugs) {
+            document.getElementById("bugCount").textContent = bugs.length + " bug" + (bugs.length !== 1 ? "s" : "");
+            const tbody = document.getElementById("bugTableBody");
+            if (!bugs.length) {
+                tbody.innerHTML = `<tr class="state-row"><td colspan="8">No bugs found.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = bugs.map((bug, i) => {
+                const docUrl = docUrls[bug.sprintNumber] || bug.docUrl || "";
+                return `<tr style="animation-delay:${i * .03}s">
+      <td class="td-sprint">#${esc(bug.sprintNumber)}</td>
+      <td class="td-title"><span onclick="openModal('${esc(bug.id)}')" title="${esc(bug.title)}">${esc(bug.title)}</span></td>
+      <td>${pBadge(bug.priority)}</td>
+      <td class="status-cell" id="sc-${esc(bug.id)}">
+        <span class="badge ${sClass(bug.status)}">${esc(bug.status || "—")}
+          <select class="status-select" onchange="updateStatus(event,'${esc(bug.id)}')" title="Change status">
+            ${["Open", "In Progress", "Resolved", "Closed"].map(s => `<option value="${s}"${s === bug.status ? " selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </span>
+        <div class="cell-spinner"></div>
+        <div class="saved-dot">✓</div>
+      </td>
+      <td class="assignee-cell" id="ac-${esc(bug.id)}">
+        <div class="assignee-display" onclick="startEditAssignee('${esc(bug.id)}')">
+          <span class="assignee-name">${esc(bug.assignee || "Unassigned")}</span>
+          <span class="pen">✏</span>
+        </div>
+        <div class="assignee-edit-wrap">
+          <input class="assignee-input" id="ai-${esc(bug.id)}" value="${esc(bug.assignee || "")}" placeholder="email or name"
+            onkeydown="onAssigneeKey(event,'${esc(bug.id)}')"/>
+          <button class="a-save"   onclick="saveAssignee('${esc(bug.id)}')">✓</button>
+          <button class="a-cancel" onclick="cancelAssignee('${esc(bug.id)}','${esc(bug.assignee || "")}')">✕</button>
+        </div>
+        <div class="cell-spinner"></div>
+      </td>
+      <td class="td-meta" style="max-width:150px;overflow:hidden;text-overflow:ellipsis">
+        ${bug.pageURL ? `<a href="${esc(bug.pageURL)}" target="_blank" rel="noopener"
+          style="color:var(--text-3);font-size:11px;font-family:var(--font-mono);text-decoration:none"
+          title="${esc(bug.pageURL)}">${esc(shorten(bug.pageURL, 26))}</a>` : "—"}
+      </td>
+      <td>${docUrl ? `<a class="doc-link" href="${esc(docUrl)}" target="_blank" rel="noopener">📄 Doc ↗</a>` :
+                        `<span style="color:var(--text-3);font-size:11px;font-family:var(--font-mono)">—</span>`}</td>
+      <td class="td-meta">${esc(bug.submittedAt || "—")}</td>
+    </tr>`;
+            }).join("");
+        }
+
+        // ── Status Update ───────────────────────────────────────────────
+        async function updateStatus(event, bugId) {
+            event.stopPropagation();
+            const newStatus = event.target.value;
+            const bug = allBugs.find(b => b.id === bugId);
+            if (!bug) return;
+
+            const cell = document.getElementById("sc-" + bugId);
+            const oldStatus = bug.status;
+            const badge = cell.querySelector(".badge");
+
+            // Optimistic
+            bug.status = newStatus;
+            badge.className = "badge " + sClass(newStatus);
+            // Re-render badge text keeping the select inside
+            const select = badge.querySelector("select");
+            badge.firstChild.textContent = newStatus;
+            cell.classList.add("updating"); cell.classList.remove("saved");
+
+            try {
+                const res = await fetch("/api/update", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ field: "status", bugId, sprintNumber: bug.sprintNumber, newStatus })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || "Failed");
+                cell.classList.add("saved");
+                setTimeout(() => cell.classList.remove("saved"), 2000);
+                renderStats(allBugs); renderCharts(allBugs);
+            } catch (err) {
+                bug.status = oldStatus;
+                badge.className = "badge " + sClass(oldStatus);
+                badge.firstChild.textContent = oldStatus;
+                if (select) select.value = oldStatus;
+                showError("Status update failed: " + err.message);
+            } finally {
+                cell.classList.remove("updating");
+            }
+        }
+
+        // ── Assignee Edit ───────────────────────────────────────────────
+        function startEditAssignee(bugId) {
+            document.getElementById("ac-" + bugId).classList.add("editing");
+            const inp = document.getElementById("ai-" + bugId);
+            inp.focus(); inp.select();
+        }
+
+        function cancelAssignee(bugId, original) {
+            document.getElementById("ai-" + bugId).value = original;
+            document.getElementById("ac-" + bugId).classList.remove("editing");
+        }
+
+        function onAssigneeKey(event, bugId) {
+            if (event.key === "Enter") saveAssignee(bugId);
+            if (event.key === "Escape") {
+                const bug = allBugs.find(b => b.id === bugId);
+                cancelAssignee(bugId, bug?.assignee || "");
+            }
+        }
+
+        async function saveAssignee(bugId) {
+            const bug = allBugs.find(b => b.id === bugId);
+            if (!bug) return;
+            const cell = document.getElementById("ac-" + bugId);
+            const input = document.getElementById("ai-" + bugId);
+            const newAssignee = input.value.trim();
+            const old = bug.assignee;
+
+            if (!newAssignee) { input.focus(); return; }
+            if (newAssignee === old) { cell.classList.remove("editing"); return; }
+
+            cell.classList.add("updating");
+            try {
+                const res = await fetch("/api/update", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ field: "assignee", bugId, sprintNumber: bug.sprintNumber, newAssignee })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || "Failed");
+                bug.assignee = newAssignee;
+                cell.querySelector(".assignee-name").textContent = newAssignee;
+                cell.classList.remove("editing");
+            } catch (err) {
+                input.value = old;
+                showError("Assignee update failed: " + err.message);
+            } finally {
+                cell.classList.remove("updating", "editing");
+            }
+        }
+
+        // ── Modal ───────────────────────────────────────────────────────
+        function openModal(id) {
+            const bug = allBugs.find(b => b.id === id);
+            if (!bug) return;
+            document.getElementById("modalTitle").textContent = bug.title;
+            document.getElementById("mSprint").textContent = "#" + bug.sprintNumber;
+            document.getElementById("mRelease").textContent = bug.releaseDate || "—";
+            document.getElementById("mReportedBy").textContent = bug.reportedBy || "—";
+            document.getElementById("mAssignee").textContent = bug.assignee || "—";
+            document.getElementById("mPriority").innerHTML = pBadge(bug.priority);
+            document.getElementById("mStatus").innerHTML = sBadge(bug.status);
+            document.getElementById("mPageURL").innerHTML = bug.pageURL
+                ? `<a href="${esc(bug.pageURL)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(bug.pageURL)}</a>` : "—";
+            document.getElementById("mDescription").textContent = bug.description || "—";
+            document.getElementById("mSubmittedAt").textContent = bug.submittedAt || "—";
+
+            const docUrl = docUrls[bug.sprintNumber] || bug.docUrl || "";
+            const docLink = document.getElementById("modalDocLink");
+            docLink.href = docUrl;
+            docLink.style.display = docUrl ? "" : "none";
+
+            const vw = document.getElementById("mVideoWrap");
+            vw.style.display = bug.videoURL ? "" : "none";
+            if (bug.videoURL) document.getElementById("mVideoURL").innerHTML =
+                `<a href="${esc(bug.videoURL)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(bug.videoURL)}</a>`;
+
+            const sw = document.getElementById("mSsWrap");
+            sw.style.display = bug.screenshots ? "" : "none";
+            if (bug.screenshots) document.getElementById("mScreenshots").textContent = bug.screenshots;
+
+            document.getElementById("modalBg").classList.add("show");
+        }
+
+        document.getElementById("modalCloseBtn").addEventListener("click", () => document.getElementById("modalBg").classList.remove("show"));
+        document.getElementById("modalBg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove("show"); });
+
+        // ── Filters ─────────────────────────────────────────────────────
+        let debTimer;
+        function applyFilters() {
+            clearTimeout(debTimer);
+            debTimer = setTimeout(() => fetchBugs({
+                sprint: document.getElementById("fSprint").value.trim(),
+                priority: document.getElementById("fPriority").value,
+                status: document.getElementById("fStatus").value,
+                assignee: document.getElementById("fAssignee").value.trim(),
+            }), 400);
+        }
+        ["fSprint", "fPriority", "fStatus", "fAssignee"].forEach(id => {
+            document.getElementById(id).addEventListener("input", applyFilters);
+            document.getElementById(id).addEventListener("change", applyFilters);
+        });
+        document.getElementById("clearBtn").addEventListener("click", () => {
+            ["fSprint", "fPriority", "fStatus", "fAssignee"].forEach(id => document.getElementById(id).value = "");
+            fetchBugs();
+        });
+
+        document.getElementById("refreshBtn").addEventListener("click", () => {
+            const btn = document.getElementById("refreshBtn");
+            btn.classList.add("spinning");
+            fetchBugs({
+                sprint: document.getElementById("fSprint").value.trim(), priority: document.getElementById("fPriority").value,
+                status: document.getElementById("fStatus").value, assignee: document.getElementById("fAssignee").value.trim()
+            }).finally(() => btn.classList.remove("spinning"));
+        });
+
+        // ── Helpers ──────────────────────────────────────────────────────
+        function setLoading(on) {
+            if (on) document.getElementById("bugTableBody").innerHTML =
+                `<tr class="state-row"><td colspan="8"><div class="spinner-ring"></div>Loading…</td></tr>`;
+        }
+        function showError(msg) {
+            const el = document.getElementById("errorBanner");
+            el.textContent = "⚠ " + msg; el.style.display = "block";
+            setTimeout(() => el.style.display = "none", 6000);
+        }
+        function hideError() { document.getElementById("errorBanner").style.display = "none"; }
+
+        fetchBugs();
+    </script>
+</body>
+
+</html>

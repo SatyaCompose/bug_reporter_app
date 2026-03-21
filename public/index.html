@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Bug Report</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #080a0f;
+      --surface: #0f1117;
+      --surface2: #171a24;
+      --surface3: #1e2130;
+      --border: #252836;
+      --border-focus: #4f6ef7;
+      --accent: #4f6ef7;
+      --accent-dim: rgba(79, 110, 247, 0.15);
+      --accent-glow: rgba(79, 110, 247, 0.2);
+      --red: #f75c6e;
+      --red-dim: rgba(247, 92, 110, 0.12);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.1);
+      --yellow: #fbbf24;
+      --orange: #f97316;
+      --text: #e2e6f0;
+      --text-2: #9099b5;
+      --text-3: #4a5070;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --r: 12px;
+      --r-sm: 8px;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 0;
+      position: relative;
+    }
+
+    /* Ambient background */
+    .bg-ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bg-ambient::before {
+      content: '';
+      position: absolute;
+      top: -30vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(900px, 120vw);
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(79, 110, 247, 0.07) 0%, transparent 65%);
+    }
+
+    .bg-ambient::after {
+      content: '';
+      position: absolute;
+      bottom: -20vh;
+      right: -10vw;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(247, 92, 110, 0.04) 0%, transparent 65%);
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(79, 110, 247, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79, 110, 247, 0.03) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* Layout */
+    .page {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    /* Top bar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(8, 10, 15, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 clamp(16px, 4vw, 40px);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .topbar-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .topbar-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 100px;
+      background: var(--red-dim);
+      border: 1px solid rgba(247, 92, 110, 0.2);
+      color: var(--red);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .tag::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      background: var(--red);
+      border-radius: 50%;
+      animation: blink 2s ease infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+    }
+
+    /* Main content */
+    .main {
+      padding: clamp(24px, 4vw, 48px) clamp(16px, 4vw, 40px);
+      max-width: 720px;
+      margin: 0 auto;
+      width: 100%;
+      animation: fadeUp 0.45s var(--ease) both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Page header */
+    .page-header {
+      margin-bottom: clamp(24px, 4vw, 40px);
+    }
+
+    .page-header h1 {
+      font-family: var(--font-head);
+      font-size: clamp(26px, 5vw, 38px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 10px;
+      background: linear-gradient(120deg, #e2e6f0 30%, #6b80d6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .page-header p {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.6;
+      font-weight: 300;
+      max-width: 480px;
+    }
+
+    /* Sprint banner */
+    .sprint-banner {
+      background: linear-gradient(135deg, rgba(79, 110, 247, 0.08), rgba(79, 110, 247, 0.03));
+      border: 1px solid rgba(79, 110, 247, 0.2);
+      border-radius: var(--r);
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .sprint-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sprint-icon {
+      font-size: 20px;
+    }
+
+    .sprint-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 2px;
+    }
+
+    .sprint-value {
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+    }
+
+    .sprint-value span {
+      color: var(--text-2);
+      font-weight: 400;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* Form card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+    }
+
+    .card-header-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .card-header-icon.blue {
+      background: rgba(79, 110, 247, 0.15);
+    }
+
+    .card-header-icon.red {
+      background: rgba(247, 92, 110, 0.12);
+    }
+
+    .card-header-icon.green {
+      background: rgba(52, 211, 153, 0.1);
+    }
+
+    .card-header-icon.amber {
+      background: rgba(251, 191, 36, 0.1);
+    }
+
+    .card-header-title {
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .card-header-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 1px;
+      font-family: var(--font-mono);
+    }
+
+    .card-body {
+      padding: clamp(16px, 3vw, 24px);
+    }
+
+    /* Field */
+    .row {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .row:last-child {
+      margin-bottom: 0;
+    }
+
+    .col-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .col-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    @media (max-width: 520px) {
+
+      .col-2,
+      .col-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-2);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .req {
+      color: var(--red);
+    }
+
+    input[type=text],
+    input[type=email],
+    input[type=url],
+    input[type=number],
+    input[type=date],
+    textarea,
+    select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 400;
+      padding: 10px 13px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type=date] {
+      color-scheme: dark;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--text-3);
+      font-weight: 300;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+      background: #131620;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.65;
+    }
+
+    /* Select wrapper */
+    .sel-wrap {
+      position: relative;
+    }
+
+    .sel-wrap::after {
+      content: '⌄';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-58%);
+      color: var(--text-3);
+      pointer-events: none;
+      font-size: 16px;
+    }
+
+    select option {
+      background: #1e2130;
+    }
+
+    /* Sprint # input with prefix */
+    .input-prefix-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-prefix {
+      position: absolute;
+      left: 13px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      pointer-events: none;
+      font-weight: 500;
+      z-index: 1;
+    }
+
+    .input-prefix-wrap input {
+      padding-left: 54px;
+    }
+
+    /* Pills — Priority */
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .pill {
+      cursor: pointer;
+      padding: 7px 14px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: var(--font-mono);
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-3);
+      transition: all 0.15s var(--ease);
+      user-select: none;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .pill:active {
+      transform: scale(0.95);
+    }
+
+    .pill.p-low.active {
+      background: rgba(52, 211, 153, 0.12);
+      border-color: rgba(52, 211, 153, 0.35);
+      color: var(--green);
+    }
+
+    .pill.p-medium.active {
+      background: rgba(251, 191, 36, 0.12);
+      border-color: rgba(251, 191, 36, 0.35);
+      color: var(--yellow);
+    }
+
+    .pill.p-high.active {
+      background: rgba(249, 115, 22, 0.12);
+      border-color: rgba(249, 115, 22, 0.35);
+      color: var(--orange);
+    }
+
+    .pill.p-critical.active {
+      background: rgba(247, 92, 110, 0.12);
+      border-color: rgba(247, 92, 110, 0.35);
+      color: var(--red);
+    }
+
+    .pill.s-open.active {
+      background: rgba(79, 110, 247, 0.12);
+      border-color: rgba(79, 110, 247, 0.35);
+      color: var(--accent);
+    }
+
+    .pill.s-inprogress.active {
+      background: rgba(251, 191, 36, 0.12);
+      border-color: rgba(251, 191, 36, 0.35);
+      color: var(--yellow);
+    }
+
+    .pill.s-resolved.active {
+      background: rgba(52, 211, 153, 0.12);
+      border-color: rgba(52, 211, 153, 0.35);
+      color: var(--green);
+    }
+
+    .pill.s-closed.active {
+      background: rgba(148, 163, 184, 0.1);
+      border-color: rgba(148, 163, 184, 0.25);
+      color: #94a3b8;
+    }
+
+    /* File upload */
+    .upload-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: var(--r-sm);
+      background: var(--surface2);
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.18s var(--ease);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.over {
+      border-color: var(--border-focus);
+      background: rgba(79, 110, 247, 0.04);
+    }
+
+    .upload-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: none;
+      background: none;
+      font-size: 0;
+    }
+
+    .upload-emoji {
+      font-size: 24px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .upload-text {
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    .upload-text strong {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .upload-hint {
+      font-size: 10px;
+      color: var(--text-3);
+      margin-top: 3px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.04em;
+    }
+
+    .file-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(79, 110, 247, 0.1);
+      border: 1px solid rgba(79, 110, 247, 0.2);
+      border-radius: 6px;
+      padding: 4px 9px;
+      font-size: 11px;
+      color: #818cf8;
+      font-family: var(--font-mono);
+      max-width: 200px;
+    }
+
+    .chip span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chip-rm {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 0;
+      font-size: 12px;
+      opacity: 0.55;
+      flex-shrink: 0;
+      line-height: 1;
+      width: auto;
+      border-radius: 0;
+      transition: opacity 0.15s;
+    }
+
+    .chip-rm:hover {
+      opacity: 1;
+    }
+
+    /* Submit area */
+    .submit-area {
+      padding: clamp(16px, 3vw, 24px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    .submit-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .submit-btn {
+      flex: 1;
+      min-width: 180px;
+      padding: 13px 24px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--r-sm);
+      color: #fff;
+      font-family: var(--font-head);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: all 0.18s var(--ease);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .submit-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent);
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: #6477f8;
+      box-shadow: 0 6px 28px rgba(79, 110, 247, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .submit-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .reset-btn {
+      padding: 13px 18px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      font-family: var(--font-body);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.18s var(--ease);
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .reset-btn:hover {
+      border-color: #3a3e56;
+      color: var(--text);
+    }
+
+    /* Error */
+    .error-box {
+      display: none;
+      background: rgba(247, 92, 110, 0.07);
+      border: 1px solid rgba(247, 92, 110, 0.25);
+      border-radius: var(--r-sm);
+      color: #fca5a5;
+      font-size: 12px;
+      padding: 11px 14px;
+      margin-top: 12px;
+      font-family: var(--font-mono);
+      line-height: 1.5;
+    }
+
+    /* Required note */
+    .req-note {
+      font-size: 11px;
+      color: var(--text-3);
+      font-family: var(--font-mono);
+      margin-bottom: 20px;
+    }
+
+    .req-note span {
+      color: var(--red);
+    }
+
+    /* Success modal */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 10, 15, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-bg.show {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: 20px;
+      padding: clamp(28px, 5vw, 44px);
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      animation: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .modal::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+    }
+
+    @keyframes pop {
+      from {
+        opacity: 0;
+        transform: scale(0.88) translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .modal-icon {
+      width: 60px;
+      height: 60px;
+      background: var(--green-dim);
+      border: 1.5px solid rgba(52, 211, 153, 0.25);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 18px;
+      font-size: 26px;
+    }
+
+    .modal h2 {
+      font-family: var(--font-head);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .modal-doc {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(79, 110, 247, 0.1);
+      border: 1px solid rgba(79, 110, 247, 0.2);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #818cf8;
+      margin: 10px 0 6px;
+    }
+
+    .modal p {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.6;
+      font-weight: 300;
+      margin-bottom: 22px;
+    }
+
+    .modal-close {
+      width: 100%;
+      padding: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s var(--ease);
+    }
+
+    .modal-close:hover {
+      border-color: var(--border-focus);
+      background: var(--accent-dim);
+    }
+
+    /* Touch improvements */
+    @media (hover: none) {
+
+      .pill:hover,
+      .submit-btn:hover,
+      .reset-btn:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .topbar-brand span {
+        display: none;
+      }
+
+      .submit-row {
+        flex-direction: column;
+      }
+
+      .submit-btn,
+      .reset-btn {
+        width: 100%;
+        min-width: unset;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="bg-ambient"></div>
+  <div class="bg-grid"></div>
+
+  <div class="page">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="topbar-brand">
+          <div class="topbar-icon">🐛</div>
+          <span>BugTracker</span>
+        </div>
+        <a href="index.html"
+          style="font-size:13px;color:var(--accent);background:rgba(79,110,247,0.1);padding:5px 10px;border-radius:6px;text-decoration:none;">Report</a>
+        <a href="dashboard.html"
+          style="font-size:13px;color:var(--text-2);padding:5px 10px;border-radius:6px;text-decoration:none;">Dashboard</a>
+      </div>
+      <div class="topbar-meta">
+        <div class="tag">Live</div>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="main">
+      <div class="page-header">
+        <h1>Report a Bug</h1>
+        <p>Found something broken? Fill in the details and we'll track it down this sprint.</p>
+      </div>
+
+      <div class="req-note"><span>*</span> required fields</div>
+
+      <form id="bugForm" novalidate>
+
+        <!-- Sprint Info Card -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">
+            <div class="card-header-icon blue">🏃</div>
+            <div>
+              <div class="card-header-title">Sprint Info</div>
+              <div class="card-header-sub">Sprint & release details</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row col-2">
+              <div class="field">
+                <label>Sprint Number <span class="req">*</span></label>
+                <div class="input-prefix-wrap">
+                  <span class="input-prefix">#</span>
+                  <input type="number" id="sprintNumber" min="1" placeholder="e.g. 12" required />
+                </div>
+              </div>
+              <div class="field">
+                <label>Release Date <span class="req">*</span></label>
+                <input type="date" id="releaseDate" required />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Basic Info Card -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">
+            <div class="card-header-icon red">📋</div>
+            <div>
+              <div class="card-header-title">Bug Details</div>
+              <div class="card-header-sub">What & where</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="field">
+                <label>Title <span class="req">*</span></label>
+                <input type="text" id="title" placeholder="e.g. Checkout button unresponsive on iOS Safari" required />
+              </div>
+            </div>
+            <div class="row col-2">
+              <div class="field">
+                <label>Reported By <span class="req">*</span></label>
+                <input type="text" id="reportedBy" placeholder="Your name" required />
+              </div>
+              <div class="field">
+                <label>Assignee Email <span class="req">*</span></label>
+                <input type="email" id="assignee" placeholder="dev@team.com" required />
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label>Page URL <span class="req">*</span></label>
+                <input type="url" id="pageURL" placeholder="https://yoursite.com/page-with-bug" required />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Priority & Status Card -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">
+            <div class="card-header-icon amber">⚡</div>
+            <div>
+              <div class="card-header-title">Priority & Status</div>
+              <div class="card-header-sub">Severity and current state</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="field">
+                <label>Priority <span class="req">*</span></label>
+                <div class="pill-row" id="priorityGroup">
+                  <div class="pill p-low" data-val="Low">🟢 Low</div>
+                  <div class="pill p-medium" data-val="Medium">🟡 Medium</div>
+                  <div class="pill p-high" data-val="High">🟠 High</div>
+                  <div class="pill p-critical" data-val="Critical">🔴 Critical</div>
+                </div>
+                <input type="hidden" id="priority" required />
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label>Status <span class="req">*</span></label>
+                <div class="pill-row" id="statusGroup">
+                  <div class="pill s-open" data-val="Open">Open</div>
+                  <div class="pill s-inprogress" data-val="In Progress">In Progress</div>
+                  <div class="pill s-resolved" data-val="Resolved">Resolved</div>
+                  <div class="pill s-closed" data-val="Closed">Closed</div>
+                </div>
+                <input type="hidden" id="status" required />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description & Media Card -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">
+            <div class="card-header-icon green">📝</div>
+            <div>
+              <div class="card-header-title">Description & Media</div>
+              <div class="card-header-sub">Steps to reproduce & attachments</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="field">
+                <label>Description <span class="req">*</span></label>
+                <textarea id="description"
+                  placeholder="Describe the bug. What happened? What did you expect? Steps to reproduce?"
+                  required></textarea>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label>Screenshots</label>
+                <div class="upload-zone" id="uploadZone">
+                  <input type="file" id="screenshots" accept="image/*" multiple />
+                  <span class="upload-emoji">🖼</span>
+                  <div class="upload-text"><strong>Tap to upload</strong> or drag & drop</div>
+                  <div class="upload-hint">PNG · JPG · GIF · WEBP · max 10MB each</div>
+                </div>
+                <div class="file-chips" id="fileChips"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label>Video URL <span style="color:var(--text-3);font-size:9px;">(optional — Loom, YT,
+                    etc.)</span></label>
+                <input type="url" id="videoURL" placeholder="https://loom.com/share/..." />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="submit-area">
+          <div class="submit-row">
+            <button type="submit" class="submit-btn" id="submitBtn">
+              <div class="spinner" id="spinner"></div>
+              <span id="btnText">Submit Bug Report</span>
+            </button>
+            <button type="button" class="reset-btn" id="resetBtn">Clear</button>
+          </div>
+          <div class="error-box" id="errorBox"></div>
+        </div>
+
+      </form>
+    </main>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <div class="modal-icon">✓</div>
+      <h2>Bug Reported!</h2>
+      <div class="modal-doc" id="modalDoc">📄 Sprint #<span id="modalSprint">—</span> · <span id="modalRelease">—</span>
+      </div>
+      <p>Your report was saved to Google Docs. The assigned dev will be notified shortly.</p>
+      <button class="modal-close" id="modalClose">Submit Another Report</button>
+    </div>
+  </div>
+
+  <script>
+    // ─── Config ────────────────────────────────────────────────
+    // No SCRIPT_URL needed here — form posts to /api/submit (Vercel serverless)
+    const API = '/api/submit';
+    // ───────────────────────────────────────────────────────────
+
+    // Pills
+    document.querySelectorAll('#priorityGroup .pill').forEach(p => {
+      p.addEventListener('click', () => {
+        document.querySelectorAll('#priorityGroup .pill').forEach(x => x.classList.remove('active'));
+        p.classList.add('active');
+        document.getElementById('priority').value = p.dataset.val;
+      });
+    });
+
+    document.querySelectorAll('#statusGroup .pill').forEach(p => {
+      p.addEventListener('click', () => {
+        document.querySelectorAll('#statusGroup .pill').forEach(x => x.classList.remove('active'));
+        p.classList.add('active');
+        document.getElementById('status').value = p.dataset.val;
+      });
+    });
+
+    // File upload — stores File objects, converts to base64 on submit
+    let files = []; // Array<File>
+    const input = document.getElementById('screenshots');
+    const chips = document.getElementById('fileChips');
+    const zone = document.getElementById('uploadZone');
+
+    const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB per image (Apps Script limit)
+
+    function addFiles(newFiles) {
+      for (const f of newFiles) {
+        if (files.find(x => x.name === f.name)) continue;
+        if (!f.type.startsWith('image/')) {
+          alert(`"${f.name}" is not an image. Only images can be uploaded.`);
+          continue;
+        }
+        if (f.size > MAX_FILE_SIZE) {
+          alert(`"${f.name}" is too large (max 4MB). Please compress it first.`);
+          continue;
+        }
+        files.push(f);
+      }
+      renderChips();
+    }
+
+    // Convert a File to { name, mimeType, base64 }
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          const base64 = dataUrl.split(',')[1]; // strip "data:image/png;base64,"
+          resolve({ name: file.name, mimeType: file.type, base64 });
+        };
+        reader.onerror = () => reject(new Error('Failed to read ' + file.name));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Convert all selected files to base64 array
+    async function getScreenshotPayload() {
+      return Promise.all(files.map(f => fileToBase64(f)));
+    }
+
+    input.addEventListener('change', e => { addFiles([...e.target.files]); });
+
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('over');
+      addFiles([...e.dataTransfer.files]);
+    });
+
+    function renderChips() {
+      chips.innerHTML = '';
+      files.forEach((f, i) => {
+        const c = document.createElement('div');
+        c.className = 'chip';
+        c.innerHTML = `<span>📷 ${f.name}</span><button type="button" class="chip-rm" data-i="${i}">✕</button>`;
+        c.querySelector('.chip-rm').addEventListener('click', () => { files.splice(i, 1); renderChips(); });
+        chips.appendChild(c);
+      });
+    }
+
+    // Validation
+    function validate() {
+      const checks = [
+        ['sprintNumber', 'Sprint Number'],
+        ['releaseDate', 'Release Date'],
+        ['title', 'Title'],
+        ['reportedBy', 'Reported By'],
+        ['assignee', 'Assignee Email'],
+        ['pageURL', 'Page URL'],
+        ['description', 'Description'],
+      ];
+      for (const [id, label] of checks) {
+        if (!document.getElementById(id).value.trim()) {
+          document.getElementById(id).focus();
+          return `Please fill in "${label}".`;
+        }
+      }
+      if (!document.getElementById('priority').value) return 'Please select a Priority.';
+      if (!document.getElementById('status').value) return 'Please select a Status.';
+      return null;
+    }
+
+    // Submit
+    document.getElementById('bugForm').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const err = validate();
+      const errBox = document.getElementById('errorBox');
+      if (err) { errBox.textContent = '⚠ ' + err; errBox.style.display = 'block'; errBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
+      errBox.style.display = 'none';
+
+      const btn = document.getElementById('submitBtn');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btnText');
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Submitting…';
+
+      const sprintNum = document.getElementById('sprintNumber').value.trim();
+      const releaseDate = document.getElementById('releaseDate').value.trim();
+
+      // Guard: releaseDate must be in YYYY-MM-DD format
+      if (!releaseDate || !/^\d{4}-\d{2}-\d{2}$/.test(releaseDate)) {
+        document.getElementById('releaseDate').focus();
+        errBox.textContent = '⚠ Please select a valid Release Date.';
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Submit Bug Report';
+        return;
+      }
+
+      const videoURL = document.getElementById('videoURL').value.trim();
+
+      // Convert images to base64 for embedding in Google Doc
+      btnText.textContent = files.length > 0 ? 'Uploading images…' : 'Submitting…';
+      let screenshots = [];
+      try {
+        screenshots = await getScreenshotPayload();
+      } catch (imgErr) {
+        errBox.textContent = '⚠ Image read failed: ' + imgErr.message;
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Submit Bug Report';
+        return;
+      }
+      btnText.textContent = 'Submitting…';
+
+      const payload = {
+        sprintNumber: sprintNum,
+        releaseDate: releaseDate,
+        title: document.getElementById('title').value.trim(),
+        reportedBy: document.getElementById('reportedBy').value.trim(),
+        assignee: document.getElementById('assignee').value.trim(),
+        pageURL: document.getElementById('pageURL').value.trim(),
+        priority: document.getElementById('priority').value,
+        status: document.getElementById('status').value,
+        description: document.getElementById('description').value.trim(),
+        screenshots,  // Array of { name, mimeType, base64 }
+        videoURL,
+      };
+
+      console.log('[submit] Sending', screenshots.length, 'screenshot(s)');
+
+      try {
+        const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await res.json();
+
+        if (data.success === false) throw new Error(data.message || 'Server error');
+
+        // Show modal
+        document.getElementById('modalSprint').textContent = sprintNum;
+        document.getElementById('modalRelease').textContent = new Date(releaseDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        document.getElementById('modalBg').classList.add('show');
+
+        // Reset form
+        document.getElementById('bugForm').reset();
+        files = [];
+        input.value = '';
+        renderChips();
+        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+        document.getElementById('priority').value = '';
+        document.getElementById('status').value = '';
+
+      } catch (err) {
+        errBox.textContent = '⚠ Submission failed: ' + err.message;
+        errBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Submit Bug Report';
+      }
+    });
+
+    // Reset
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('bugForm').reset();
+      files = [];
+      renderChips();
+      document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      document.getElementById('priority').value = '';
+      document.getElementById('status').value = '';
+      document.getElementById('errorBox').style.display = 'none';
+    });
+
+    // Modal close
+    document.getElementById('modalClose').addEventListener('click', () => {
+      document.getElementById('modalBg').classList.remove('show');
+    });
+  </script>
+</body>
+
+</html>
