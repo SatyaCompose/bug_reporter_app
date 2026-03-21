@@ -10,7 +10,7 @@
     "deploy": "vercel --prod"
   },
   "engines": {
-    "node": "24.x"
+    "node": "22.x"
   },
   "dependencies": {
     "@vercel/node": "^5.6.18",
