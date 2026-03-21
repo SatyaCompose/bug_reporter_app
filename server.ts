@@ -218,10 +218,22 @@ async function handleProxy(
   const raw = await readBody(req);
 
   try {
+    // Mirror what api/update.ts does: add the `action` field Apps Script expects.
+    const parsed = JSON.parse(raw) as {
+      field: "status" | "assignee";
+      bugId: string;
+      sprintNumber: string;
+      newStatus?: string;
+      newAssignee?: string;
+    };
+    const action =
+      parsed.field === "status" ? "update_status" : "update_assignee";
+    const payload = { action, ...parsed };
+
     const response = await fetch(env.APPS_SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: raw,
+      body: JSON.stringify(payload),
       redirect: "follow",
     });
     const data = await response.json();
