@@ -27,9 +27,9 @@
             --green-dim: rgba(45, 212, 160, 0.08);
             --yellow: #f5c842;
             --orange: #fb8c3f;
-            --text: #dce2f0;
-            --text-2: #8590aa;
-            --text-3: #3d4660;
+            --text: #e8edf8;
+            --text-2: #9aa5c0;
+            --text-3: #627090;
             --font-head: 'Syne', sans-serif;
             --font-body: 'DM Sans', sans-serif;
             --font-mono: 'DM Mono', monospace;
@@ -178,16 +178,13 @@
             font-size: clamp(22px, 3.5vw, 32px);
             font-weight: 800;
             letter-spacing: -.03em;
-            background: linear-gradient(135deg, #dce2f0 0%, #8590aa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text
+            color: #e8edf8
         }
 
         .last-updated {
             font-family: var(--font-mono);
             font-size: 11px;
-            color: var(--text-3);
+            color: var(--text-2);
             margin-top: 5px
         }
 
@@ -265,7 +262,8 @@
             font-size: 36px;
             font-weight: 800;
             letter-spacing: -.04em;
-            line-height: 1
+            line-height: 1;
+            color: #f0f4ff
         }
 
         .stat-sub {
@@ -435,9 +433,9 @@
         .bug-count {
             font-family: var(--font-mono);
             font-size: 11px;
-            color: var(--text-3);
+            color: var(--text-2);
             background: var(--surface3);
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-light);
             border-radius: 100px;
             padding: 2px 10px
         }
