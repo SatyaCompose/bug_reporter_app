@@ -741,6 +741,7 @@
 
         <div id="completedContent">
             <table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+                <thead><tr><th>Sprint</th><th>Title</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Page URL</th><th>Doc</th><th>Submitted</th></tr></thead>
                 <tbody>
                     <tr class="state-row">
                         <td colspan="8">
@@ -821,7 +822,7 @@
     <script>
         let allBugs = [];
         const docUrls = {};
-        const COMPLETED_STATUSES = ["Resolved", "Closed", "No Fix Required"];
+        const COMPLETED_STATUSES = ["Closed", "No Fix Required"];
 
         // ── Fetch ──────────────────────────────────────────────────────
         async function fetchBugs(filters = {}) {
@@ -1045,7 +1046,7 @@
         // ── Helpers ──────────────────────────────────────────────────────
         function setLoading(on) {
             if (on) document.getElementById("completedContent").innerHTML =
-                `<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden"><tbody><tr class="state-row"><td colspan="8"><div class="spinner-ring"></div>Loading…</td></tr></tbody></table>`;
+                `<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden"><thead><tr><th>Sprint</th><th>Title</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Page URL</th><th>Doc</th><th>Submitted</th></tr></thead><tbody><tr class="state-row"><td colspan="8"><div class="spinner-ring"></div>Loading…</td></tr></tbody></table>`;
         }
 
         function showError(msg) {

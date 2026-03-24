@@ -943,28 +943,33 @@
 
         <div class="error-banner" id="errorBanner"></div>
 
-        <div class="stats-grid">
+        <div class="stats-grid" id="statsGrid">
             <div class="stat-card blue" style="animation-delay:.05s">
                 <div class="stat-label">Total Active</div>
                 <div class="stat-value" id="statTotal">—</div>
-                <div class="stat-sub" id="statSprints">across — sprints</div>
+                <div class="stat-sub" id="statScopeLabel">all sprints</div>
             </div>
-            <div class="stat-card red" style="animation-delay:.1s">
+            <div class="stat-card red" style="animation-delay:.08s">
                 <div class="stat-label">Open</div>
                 <div class="stat-value" id="statOpen">—</div>
                 <div class="stat-sub" id="statOpenPct">— of active</div>
             </div>
-            <div class="stat-card amber" style="animation-delay:.15s">
+            <div class="stat-card amber" style="animation-delay:.12s">
                 <div class="stat-label">In Progress</div>
                 <div class="stat-value" id="statInProgress">—</div>
                 <div class="stat-sub" id="statInProgressPct">being worked on</div>
+            </div>
+            <div class="stat-card green" style="animation-delay:.16s">
+                <div class="stat-label">Resolved · PR Raised</div>
+                <div class="stat-value" id="statResolved">—</div>
+                <div class="stat-sub" id="statResolvedPct">awaiting deployment</div>
             </div>
             <div class="stat-card amber" style="animation-delay:.2s">
                 <div class="stat-label">Critical</div>
                 <div class="stat-value" id="statCritical">—</div>
                 <div class="stat-sub">need immediate attention</div>
             </div>
-            <div class="stat-card slate" style="animation-delay:.25s">
+            <div class="stat-card slate" style="animation-delay:.24s">
                 <div class="stat-label">Completed</div>
                 <div class="stat-value" id="statCompleted">—</div>
                 <div class="stat-sub"><a href="/completed.html" style="color:#a5b4fc;text-decoration:none">View all →</a></div>
@@ -981,7 +986,7 @@
                 <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
             </div>
             <div class="chart-card">
-                <div class="chart-title">Open vs In Progress</div>
+                <div class="chart-title">Status Breakdown</div>
                 <div class="chart-wrap"><canvas id="ratioChart"></canvas></div>
             </div>
         </div>
@@ -1007,6 +1012,7 @@
                         <option value="">All Active</option>
                         <option>Open</option>
                         <option>In Progress</option>
+                        <option>Resolved</option>
                     </select></div>
             </div>
             <div class="filter-field">
@@ -1122,15 +1128,11 @@
         const docUrls = {};
 
         // ── Fetch ──────────────────────────────────────────────────────
-        async function fetchBugs(filters = {}) {
+        // Always fetches all bugs; filters are applied client-side so sprint-level stats stay accurate
+        async function fetchBugs() {
             setLoading(true); hideError();
-            const p = new URLSearchParams();
-            if (filters.sprint) p.set("sprint", filters.sprint);
-            if (filters.status) p.set("status", filters.status);
-            if (filters.priority) p.set("priority", filters.priority);
-            if (filters.assignee) p.set("assignee", filters.assignee);
             try {
-                const res = await fetch("/api/bugs" + (p.toString() ? "?" + p : ""));
+                const res = await fetch("/api/bugs");
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message || "API error");
                 allBugs = data.bugs || [];
@@ -1143,30 +1145,55 @@
             }
         }
 
-        const ACTIVE_STATUSES = ["Open", "In Progress"];
-        const COMPLETED_STATUSES = ["Resolved", "Closed", "No Fix Required"];
+        const ACTIVE_STATUSES    = ["Open", "In Progress", "Resolved"];
+        const COMPLETED_STATUSES = ["Closed", "No Fix Required"];
 
-        function renderAll(bugs) {
-            const activeBugs = bugs.filter(b => ACTIVE_STATUSES.includes(b.status));
-            renderStats(bugs, activeBugs); renderCharts(activeBugs); renderTable(activeBugs); setLoading(false);
+        // ── Client-side filter + render ────────────────────────────────
+        function applyAndRender() {
+            const sprintF   = document.getElementById("fSprint").value.trim();
+            const priorityF = document.getElementById("fPriority").value;
+            const statusF   = document.getElementById("fStatus").value;
+            const assigneeF = document.getElementById("fAssignee").value.trim();
+
+            let bugs = allBugs.filter(b => ACTIVE_STATUSES.includes(b.status));
+            if (sprintF)   bugs = bugs.filter(b => String(b.sprintNumber) === sprintF);
+            if (priorityF) bugs = bugs.filter(b => b.priority === priorityF);
+            if (statusF)   bugs = bugs.filter(b => b.status === statusF);
+            if (assigneeF) bugs = bugs.filter(b => (b.assignee || "").toLowerCase().includes(assigneeF.toLowerCase()));
+
+            const completedCount = allBugs.filter(b => {
+                if (!COMPLETED_STATUSES.includes(b.status)) return false;
+                if (sprintF && String(b.sprintNumber) !== sprintF) return false;
+                return true;
+            }).length;
+
+            renderStats(bugs, sprintF, completedCount);
+            renderCharts(bugs);
+            renderTable(bugs);
+            setLoading(false);
         }
 
+        function renderAll(bugs) { applyAndRender(); }
+
         // ── Stats ──────────────────────────────────────────────────────
-        function renderStats(allBugs, activeBugs) {
-            const total = activeBugs.length;
-            const open = activeBugs.filter(b => b.status === "Open").length;
-            const inProgress = activeBugs.filter(b => b.status === "In Progress").length;
-            const crit = activeBugs.filter(b => b.priority === "Critical").length;
-            const completed = allBugs.filter(b => COMPLETED_STATUSES.includes(b.status)).length;
-            const spr = new Set(activeBugs.map(b => b.sprintNumber)).size;
-            document.getElementById("statTotal").textContent = total;
-            document.getElementById("statSprints").textContent = "across " + spr + " sprint" + (spr !== 1 ? "s" : "");
-            document.getElementById("statOpen").textContent = open;
-            document.getElementById("statOpenPct").textContent = total ? Math.round(open / total * 100) + "% of active" : "—";
-            document.getElementById("statInProgress").textContent = inProgress;
+        function renderStats(bugs, sprintFilter, completedCount) {
+            const total      = bugs.length;
+            const open       = bugs.filter(b => b.status === "Open").length;
+            const inProgress = bugs.filter(b => b.status === "In Progress").length;
+            const resolved   = bugs.filter(b => b.status === "Resolved").length;
+            const crit       = bugs.filter(b => b.priority === "Critical").length;
+
+            const scopeLabel = sprintFilter ? "Sprint #" + sprintFilter : "all sprints";
+            document.getElementById("statTotal").textContent     = total;
+            document.getElementById("statScopeLabel").textContent = scopeLabel;
+            document.getElementById("statOpen").textContent      = open;
+            document.getElementById("statOpenPct").textContent   = total ? Math.round(open / total * 100) + "% of active" : "—";
+            document.getElementById("statInProgress").textContent    = inProgress;
             document.getElementById("statInProgressPct").textContent = total ? Math.round(inProgress / total * 100) + "% of active" : "—";
-            document.getElementById("statCritical").textContent = crit;
-            document.getElementById("statCompleted").textContent = completed;
+            document.getElementById("statResolved").textContent    = resolved;
+            document.getElementById("statResolvedPct").textContent = total ? Math.round(resolved / total * 100) + "% of active" : "—";
+            document.getElementById("statCritical").textContent   = crit;
+            document.getElementById("statCompleted").textContent  = completedCount;
         }
 
         // ── Charts ─────────────────────────────────────────────────────
@@ -1202,18 +1229,19 @@
             const pBr = ["#34d399", "#fbbf24", "#f97316", "#f75c6e"];
             buildBar("priorityChart", pL, pL.map(p => bugs.filter(b => b.priority === p).length), pBg, pBr);
 
-            const sL = ["Open", "In Progress"];
-            const sBg = ["rgba(79,110,247,.7)", "rgba(251,191,36,.7)"];
-            const sBr = ["#4f6ef7", "#fbbf24"];
+            const sL = ["Open", "In Progress", "Resolved"];
+            const sBg = ["rgba(79,110,247,.7)", "rgba(251,191,36,.7)", "rgba(45,212,160,.7)"];
+            const sBr = ["#4f6ef7", "#fbbf24", "#2dd4a0"];
             buildBar("statusChart", sL, sL.map(s => bugs.filter(b => b.status === s).length), sBg, sBr);
 
-            const openN = bugs.filter(b => b.status === "Open").length;
-            const inProgN = bugs.filter(b => b.status === "In Progress").length;
+            const openN     = bugs.filter(b => b.status === "Open").length;
+            const inProgN   = bugs.filter(b => b.status === "In Progress").length;
+            const resolvedN = bugs.filter(b => b.status === "Resolved").length;
             buildDoughnut("ratioChart",
-                ["Open", "In Progress"],
-                [openN, inProgN],
-                ["rgba(247,92,110,.75)", "rgba(251,191,36,.75)"],
-                ["#f75c6e", "#fbbf24"]);
+                ["Open", "In Progress", "Resolved (PR raised)"],
+                [openN, inProgN, resolvedN],
+                ["rgba(247,92,110,.75)", "rgba(251,191,36,.75)", "rgba(45,212,160,.75)"],
+                ["#f75c6e", "#fbbf24", "#2dd4a0"]);
         }
 
         // ── Table ───────────────────────────────────────────────────────
@@ -1490,31 +1518,23 @@
 
         // ── Filters ─────────────────────────────────────────────────────
         let debTimer;
-        function applyFilters() {
+        function onFilterChange() {
             clearTimeout(debTimer);
-            debTimer = setTimeout(() => fetchBugs({
-                sprint: document.getElementById("fSprint").value.trim(),
-                priority: document.getElementById("fPriority").value,
-                status: document.getElementById("fStatus").value,
-                assignee: document.getElementById("fAssignee").value.trim(),
-            }), 400);
+            debTimer = setTimeout(() => applyAndRender(), 250);
         }
         ["fSprint", "fPriority", "fStatus", "fAssignee"].forEach(id => {
-            document.getElementById(id).addEventListener("input", applyFilters);
-            document.getElementById(id).addEventListener("change", applyFilters);
+            document.getElementById(id).addEventListener("input", onFilterChange);
+            document.getElementById(id).addEventListener("change", onFilterChange);
         });
         document.getElementById("clearBtn").addEventListener("click", () => {
             ["fSprint", "fPriority", "fStatus", "fAssignee"].forEach(id => document.getElementById(id).value = "");
-            fetchBugs();
+            applyAndRender();
         });
 
         document.getElementById("refreshBtn").addEventListener("click", () => {
             const btn = document.getElementById("refreshBtn");
             btn.classList.add("spinning");
-            fetchBugs({
-                sprint: document.getElementById("fSprint").value.trim(), priority: document.getElementById("fPriority").value,
-                status: document.getElementById("fStatus").value, assignee: document.getElementById("fAssignee").value.trim()
-            }).finally(() => btn.classList.remove("spinning"));
+            fetchBugs().finally(() => btn.classList.remove("spinning"));
         });
 
         // ── Helpers ──────────────────────────────────────────────────────
