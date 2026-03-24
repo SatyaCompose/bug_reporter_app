@@ -241,6 +241,8 @@
         .stat-card.green::after  { background: var(--green) }
         .stat-card.amber::before { background: linear-gradient(90deg, var(--yellow), var(--orange)) }
         .stat-card.amber::after  { background: var(--yellow) }
+        .stat-card.slate::before { background: linear-gradient(90deg, #64748b, #94a3b8) }
+        .stat-card.slate::after  { background: #64748b }
 
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(14px) }
@@ -840,9 +842,11 @@
             padding: 14px 16px;
             font-size: 13px;
             line-height: 1.7;
-            color: var(--text-2);
-            white-space: pre-wrap
+            color: var(--text-2)
         }
+        .modal-desc ul,
+        .modal-desc ol { padding-left: 20px }
+        .modal-desc b, .modal-desc strong { color: var(--text) }
 
         @media (max-width: 600px) {
             .modal-row    { grid-template-columns: 1fr }
@@ -892,9 +896,14 @@
             <div class="stat-card green" style="animation-delay:.15s">
                 <div class="stat-label">Resolved</div>
                 <div class="stat-value" id="statResolved">—</div>
-                <div class="stat-sub" id="statResPct">— of total</div>
+                <div class="stat-sub" id="statResPct">fixed &amp; deployed</div>
             </div>
-            <div class="stat-card amber" style="animation-delay:.2s">
+            <div class="stat-card slate" style="animation-delay:.2s">
+                <div class="stat-label">Closed</div>
+                <div class="stat-value" id="statClosed">—</div>
+                <div class="stat-sub" id="statClosedPct">not an issue</div>
+            </div>
+            <div class="stat-card amber" style="animation-delay:.25s">
                 <div class="stat-label">Critical</div>
                 <div class="stat-value" id="statCritical">—</div>
                 <div class="stat-sub">need immediate attention</div>
@@ -911,7 +920,7 @@
                 <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
             </div>
             <div class="chart-card">
-                <div class="chart-title">Open vs Closed</div>
+                <div class="chart-title">Active vs Resolved vs Closed</div>
                 <div class="chart-wrap"><canvas id="ratioChart"></canvas></div>
             </div>
         </div>
@@ -1078,7 +1087,8 @@
         function renderStats(bugs) {
             const total = bugs.length;
             const open = bugs.filter(b => b.status === "Open").length;
-            const res = bugs.filter(b => b.status === "Resolved" || b.status === "Closed").length;
+            const res = bugs.filter(b => b.status === "Resolved").length;
+            const closed = bugs.filter(b => b.status === "Closed").length;
             const crit = bugs.filter(b => b.priority === "Critical").length;
             const spr = new Set(bugs.map(b => b.sprintNumber)).size;
             document.getElementById("statTotal").textContent = total;
@@ -1087,6 +1097,8 @@
             document.getElementById("statOpenPct").textContent = total ? Math.round(open / total * 100) + "% of total" : "—";
             document.getElementById("statResolved").textContent = res;
             document.getElementById("statResPct").textContent = total ? Math.round(res / total * 100) + "% of total" : "—";
+            document.getElementById("statClosed").textContent = closed;
+            document.getElementById("statClosedPct").textContent = total ? Math.round(closed / total * 100) + "% of total" : "—";
             document.getElementById("statCritical").textContent = crit;
         }
 
@@ -1128,10 +1140,14 @@
             const sBr = ["#4f6ef7", "#fbbf24", "#34d399", "#94a3b8"];
             buildBar("statusChart", sL, sL.map(s => bugs.filter(b => b.status === s).length), sBg, sBr);
 
-            const openN = bugs.filter(b => b.status === "Open" || b.status === "In Progress").length;
-            const closedN = bugs.filter(b => b.status === "Resolved" || b.status === "Closed").length;
-            buildDoughnut("ratioChart", ["Open / In Progress", "Resolved / Closed"], [openN, closedN],
-                ["rgba(247,92,110,.75)", "rgba(52,211,153,.75)"], ["#f75c6e", "#34d399"]);
+            const activeN = bugs.filter(b => b.status === "Open" || b.status === "In Progress").length;
+            const resolvedN = bugs.filter(b => b.status === "Resolved").length;
+            const closedN = bugs.filter(b => b.status === "Closed").length;
+            buildDoughnut("ratioChart",
+                ["Active", "Resolved (fixed)", "Closed (not an issue)"],
+                [activeN, resolvedN, closedN],
+                ["rgba(247,92,110,.75)", "rgba(52,211,153,.75)", "rgba(100,116,139,.6)"],
+                ["#f75c6e", "#34d399", "#64748b"]);
         }
 
         // ── Table ───────────────────────────────────────────────────────
@@ -1292,7 +1308,7 @@
             document.getElementById("mStatus").innerHTML = sBadge(bug.status);
             document.getElementById("mPageURL").innerHTML = bug.pageURL
                 ? `<a href="${esc(bug.pageURL)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(bug.pageURL)}</a>` : "—";
-            document.getElementById("mDescription").textContent = bug.description || "—";
+            document.getElementById("mDescription").innerHTML = bug.description || "—";
             document.getElementById("mSubmittedAt").textContent = bug.submittedAt || "—";
 
             const docUrl = docUrls[bug.sprintNumber] || bug.docUrl || "";

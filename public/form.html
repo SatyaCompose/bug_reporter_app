@@ -555,6 +555,28 @@
       color: var(--green);
     }
 
+    .status-hint {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      margin-top: 8px;
+      padding: 7px 11px;
+      border-radius: var(--r-sm);
+      display: none;
+    }
+    .status-hint.visible {
+      display: block;
+    }
+    .status-hint.hint-resolved {
+      background: rgba(52, 211, 153, 0.07);
+      border: 1px solid rgba(52, 211, 153, 0.2);
+      color: #34d399;
+    }
+    .status-hint.hint-closed {
+      background: rgba(148, 163, 184, 0.07);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      color: var(--text-2);
+    }
+
     .pill.s-closed.active {
       background: rgba(148, 163, 184, 0.1);
       border-color: rgba(148, 163, 184, 0.25);
@@ -1173,6 +1195,7 @@
                   <div class="pill s-resolved" data-val="Resolved">Resolved</div>
                   <div class="pill s-closed" data-val="Closed">Closed</div>
                 </div>
+                <div id="statusHint" class="status-hint"></div>
                 <input type="hidden" id="status" required />
               </div>
             </div>
@@ -1354,11 +1377,23 @@
       });
     });
 
+    const STATUS_HINTS = {
+      'Resolved': { cls: 'hint-resolved', text: '✓ Fixed — the bug has been addressed and a fix has been deployed.' },
+      'Closed':   { cls: 'hint-closed',   text: '✕ Not an issue — no fix required, working as intended or out of scope.' },
+    };
     document.querySelectorAll('#statusGroup .pill').forEach(p => {
       p.addEventListener('click', () => {
         document.querySelectorAll('#statusGroup .pill').forEach(x => x.classList.remove('active'));
         p.classList.add('active');
         document.getElementById('status').value = p.dataset.val;
+        const hint = document.getElementById('statusHint');
+        const h = STATUS_HINTS[p.dataset.val];
+        if (h) {
+          hint.textContent = h.text;
+          hint.className = 'status-hint visible ' + h.cls;
+        } else {
+          hint.className = 'status-hint';
+        }
       });
     });
 
