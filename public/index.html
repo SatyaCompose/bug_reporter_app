@@ -741,6 +741,34 @@
         .assignee-cell.updating .assignee-edit-wrap { opacity: .5; pointer-events: none }
         .assignee-cell.updating .cell-spinner       { display: block }
 
+        /* ── Developer edit ─────────────────────────── */
+        .developer-cell { position: relative; min-width: 150px }
+
+        .developer-display {
+            display: flex; align-items: center; gap: 5px; cursor: pointer;
+            padding: 4px 6px; border-radius: 6px; transition: background .15s
+        }
+        .developer-display:hover { background: var(--surface3) }
+        .developer-name { font-size: 12.5px; color: var(--text-2) }
+        .developer-display .pen { font-size: 10px; opacity: 0; transition: opacity .15s; color: var(--accent) }
+        .developer-display:hover .pen { opacity: 1 }
+        .developer-edit-wrap { display: none; align-items: center; gap: 4px }
+        .developer-cell.editing .developer-display  { display: none }
+        .developer-cell.editing .developer-edit-wrap { display: flex }
+        .developer-input {
+            background: var(--surface2); border: 1px solid var(--border-focus); border-radius: 6px;
+            color: var(--text); font-family: var(--font-body); font-size: 12px;
+            padding: 5px 9px; outline: none; width: 140px; box-shadow: 0 0 0 3px var(--accent-dim)
+        }
+        .developer-cell .cell-spinner {
+            position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+            width: 10px; height: 10px; display: none;
+            border: 1.5px solid rgba(255,255,255,.2); border-top-color: var(--green);
+            border-radius: 50%; animation: spin .6s linear infinite
+        }
+        .developer-cell.updating .developer-edit-wrap { opacity: .5; pointer-events: none }
+        .developer-cell.updating .cell-spinner        { display: block }
+
         /* ── Empty / loading ────────────────────────── */
         .state-row td {
             text-align: center;
@@ -1036,6 +1064,7 @@
                             <th>Priority</th>
                             <th>Status</th>
                             <th>Assignee</th>
+                            <th>Developer</th>
                             <th>PR</th>
                             <th>Page URL</th>
                             <th>Doc</th>
@@ -1044,7 +1073,7 @@
                     </thead>
                     <tbody id="bugTableBody">
                         <tr class="state-row">
-                            <td colspan="9">
+                            <td colspan="10">
                                 <div class="spinner-ring"></div>Loading…
                             </td>
                         </tr>
@@ -1082,6 +1111,10 @@
                     <div class="modal-field">
                         <div class="modal-field-label">Assignee</div>
                         <div class="modal-field-value" id="mAssignee">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Developer</div>
+                        <div class="modal-field-value" id="mDeveloper">—</div>
                     </div>
                     <div class="modal-field">
                         <div class="modal-field-label">Priority</div>
@@ -1266,7 +1299,7 @@
             document.getElementById("bugCount").textContent = bugs.length + " bug" + (bugs.length !== 1 ? "s" : "");
             const tbody = document.getElementById("bugTableBody");
             if (!bugs.length) {
-                tbody.innerHTML = `<tr class="state-row"><td colspan="9">No bugs found.</td></tr>`;
+                tbody.innerHTML = `<tr class="state-row"><td colspan="10">No bugs found.</td></tr>`;
                 return;
             }
             tbody.innerHTML = bugs.map((bug, i) => {
@@ -1294,6 +1327,19 @@
             onkeydown="onAssigneeKey(event,'${esc(bug.id)}')"/>
           <button class="a-save"   onclick="saveAssignee('${esc(bug.id)}')">✓</button>
           <button class="a-cancel" onclick="cancelAssignee('${esc(bug.id)}','${esc(bug.assignee || "")}')">✕</button>
+        </div>
+        <div class="cell-spinner"></div>
+      </td>
+      <td class="developer-cell" id="dc-${esc(bug.id)}">
+        <div class="developer-display" onclick="startEditDeveloper('${esc(bug.id)}')">
+          <span class="developer-name">${esc(bug.developer || "—")}</span>
+          <span class="pen">✏</span>
+        </div>
+        <div class="developer-edit-wrap">
+          <input class="developer-input" id="di-${esc(bug.id)}" value="${esc(bug.developer || "")}" placeholder="Developer name"
+            onkeydown="onDeveloperKey(event,'${esc(bug.id)}')"/>
+          <button class="a-save"   onclick="saveDeveloper('${esc(bug.id)}')">✓</button>
+          <button class="a-cancel" onclick="cancelDeveloper('${esc(bug.id)}','${esc(bug.developer || "")}')">✕</button>
         </div>
         <div class="cell-spinner"></div>
       </td>
@@ -1485,6 +1531,56 @@
             }
         }
 
+        // ── Developer Edit ──────────────────────────────────────────────
+        function startEditDeveloper(bugId) {
+            document.getElementById("dc-" + bugId).classList.add("editing");
+            const inp = document.getElementById("di-" + bugId);
+            inp.focus(); inp.select();
+        }
+
+        function cancelDeveloper(bugId, original) {
+            document.getElementById("di-" + bugId).value = original;
+            document.getElementById("dc-" + bugId).classList.remove("editing");
+        }
+
+        function onDeveloperKey(event, bugId) {
+            if (event.key === "Enter") saveDeveloper(bugId);
+            if (event.key === "Escape") {
+                const bug = allBugs.find(b => b.id === bugId);
+                cancelDeveloper(bugId, bug?.developer || "");
+            }
+        }
+
+        async function saveDeveloper(bugId) {
+            const bug = allBugs.find(b => b.id === bugId);
+            if (!bug) return;
+            const cell = document.getElementById("dc-" + bugId);
+            const input = document.getElementById("di-" + bugId);
+            const newDeveloper = input.value.trim();
+            const old = bug.developer || "";
+
+            if (!newDeveloper) { input.focus(); return; }
+            if (newDeveloper === old) { cell.classList.remove("editing"); return; }
+
+            cell.classList.add("updating");
+            try {
+                const res = await fetch("/api/update", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ field: "developer", bugId, sprintNumber: bug.sprintNumber, newDeveloper })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || "Failed");
+                bug.developer = newDeveloper;
+                cell.querySelector(".developer-name").textContent = newDeveloper;
+                cell.classList.remove("editing");
+            } catch (err) {
+                input.value = old;
+                showError("Developer update failed: " + err.message);
+            } finally {
+                cell.classList.remove("updating", "editing");
+            }
+        }
+
         // ── Modal ───────────────────────────────────────────────────────
         function openModal(id) {
             const bug = allBugs.find(b => b.id === id);
@@ -1494,6 +1590,7 @@
             document.getElementById("mRelease").textContent = bug.releaseDate || "—";
             document.getElementById("mReportedBy").textContent = bug.reportedBy || "—";
             document.getElementById("mAssignee").textContent = bug.assignee || "—";
+            document.getElementById("mDeveloper").textContent = bug.developer || "—";
             document.getElementById("mPriority").innerHTML = pBadge(bug.priority);
             document.getElementById("mStatus").innerHTML = sBadge(bug.status);
             document.getElementById("mPageURL").innerHTML = bug.pageURL

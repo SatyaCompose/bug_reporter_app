@@ -1185,7 +1185,11 @@
                 <input type="email" id="assignee" placeholder="dev@team.com" required />
               </div>
             </div>
-            <div class="row">
+            <div class="row col-2">
+              <div class="field">
+                <label>Developer <span class="req">*</span></label>
+                <input type="text" id="developer" placeholder="Developer name who worked on this" required />
+              </div>
               <div class="field">
                 <label>Page URL <span class="req">*</span></label>
                 <input type="url" id="pageURL" placeholder="https://yoursite.com/page-with-bug" required />
@@ -1586,6 +1590,17 @@
         firstError = firstError || 'Invalid assignee email address.';
       }
 
+      // Developer
+      const developerEl = document.getElementById('developer');
+      const developerVal = developerEl.value.trim();
+      if (!developerVal) {
+        developerEl.classList.add('invalid');
+        firstError = firstError || 'Please fill in "Developer".';
+      } else if (developerVal.length < 2) {
+        fieldError('developer', 'Developer name must be at least 2 characters.');
+        firstError = firstError || 'Developer name must be at least 2 characters.';
+      }
+
       // Page URL
       const pageURLEl = document.getElementById('pageURL');
       const pageURLVal = pageURLEl.value.trim();
@@ -1678,6 +1693,7 @@
         title: document.getElementById('title').value.trim(),
         reportedBy: document.getElementById('reportedBy').value.trim(),
         assignee: document.getElementById('assignee').value.trim(),
+        developer: document.getElementById('developer').value.trim(),
         pageURL: document.getElementById('pageURL').value.trim(),
         priority: document.getElementById('priority').value,
         status: document.getElementById('status').value,

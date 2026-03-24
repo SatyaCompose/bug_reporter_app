@@ -1,7 +1,7 @@
 // api/update.ts — Vercel Serverless Function
-// Updates status, assignee, or prURL of a bug in the Google Doc
+// Updates status, assignee, prURL, or developer of a bug in the Google Doc
 //
-// Body: { field: "status"|"assignee"|"pr", bugId, sprintNumber, newStatus?, newAssignee?, newPrURL? }
+// Body: { field: "status"|"assignee"|"pr"|"developer", bugId, sprintNumber, newStatus?, newAssignee?, newPrURL?, newDeveloper? }
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAppsScriptUrl } from "../src/env";
@@ -33,13 +33,14 @@ export default async function handler(
     return;
   }
 
-  const { field, bugId, sprintNumber, newStatus, newAssignee, newPrURL } = req.body as {
-    field: "status" | "assignee" | "pr";
+  const { field, bugId, sprintNumber, newStatus, newAssignee, newPrURL, newDeveloper } = req.body as {
+    field: "status" | "assignee" | "pr" | "developer";
     bugId: string;
     sprintNumber: string;
     newStatus?: string;
     newAssignee?: string;
     newPrURL?: string;
+    newDeveloper?: string;
   };
 
   // Validate
@@ -54,7 +55,7 @@ export default async function handler(
   if (!field) {
     res
       .status(400)
-      .json({ success: false, message: "Missing field (status|assignee|pr)" });
+      .json({ success: false, message: "Missing field (status|assignee|pr|developer)" });
     return;
   }
 
@@ -80,6 +81,13 @@ export default async function handler(
     }
   }
 
+  if (field === "developer") {
+    if (!newDeveloper?.trim()) {
+      res.status(400).json({ success: false, message: "Missing newDeveloper" });
+      return;
+    }
+  }
+
   if (field === "pr" && newPrURL && newPrURL.trim()) {
     try { new URL(newPrURL.trim()); } catch {
       res.status(400).json({ success: false, message: "Invalid PR URL" });
@@ -88,11 +96,11 @@ export default async function handler(
   }
 
   try {
-    const action = field === "status" ? "update_status" : field === "assignee" ? "update_assignee" : "update_pr";
-    const payload = { action, bugId, sprintNumber, newStatus, newAssignee, newPrURL };
+    const action = field === "status" ? "update_status" : field === "assignee" ? "update_assignee" : field === "pr" ? "update_pr" : "update_developer";
+    const payload = { action, bugId, sprintNumber, newStatus, newAssignee, newPrURL, newDeveloper };
 
     console.log(
-      `[update] ${action} | bug=${bugId} | sprint=${sprintNumber} | value=${newStatus ?? newAssignee ?? newPrURL}`,
+      `[update] ${action} | bug=${bugId} | sprint=${sprintNumber} | value=${newStatus ?? newAssignee ?? newPrURL ?? newDeveloper}`,
     );
 
     const response = await fetch(APPS_SCRIPT_URL, {
