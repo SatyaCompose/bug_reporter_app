@@ -1124,22 +1124,33 @@
         // ── State ──────────────────────────────────────────────────────
         let allBugs = [];
         let charts = {};
-        // sprint# → doc URL (from the bug's docUrl field returned by Apps Script)
         const docUrls = {};
+        let lastFetchAt = 0;
+        const CACHE_TTL_MS = 60_000; // 1 minute — reuse in-memory data for filter changes
 
         // ── Fetch ──────────────────────────────────────────────────────
-        // Always fetches all bugs; filters are applied client-side so sprint-level stats stay accurate
-        async function fetchBugs() {
+        // Fetches all bugs once; filters are applied client-side for instant sprint-level stats.
+        // Subsequent calls within CACHE_TTL_MS skip the network and re-render from cache.
+        async function fetchBugs(force = false) {
+            const now = Date.now();
+            if (!force && allBugs.length && (now - lastFetchAt) < CACHE_TTL_MS) {
+                // Cache hit — just re-render with current filters
+                applyAndRender();
+                document.getElementById("lastUpdated").textContent =
+                    "Last updated: " + new Date(lastFetchAt).toLocaleTimeString("en-IN") + " (cached)";
+                return;
+            }
             setLoading(true); hideError();
             try {
                 const res = await fetch("/api/bugs");
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message || "API error");
                 allBugs = data.bugs || [];
-                // Collect any docUrl fields returned per bug
                 allBugs.forEach(b => { if (b.docUrl) docUrls[b.sprintNumber] = b.docUrl; });
-                renderAll(allBugs);
-                document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleTimeString("en-IN");
+                lastFetchAt = Date.now();
+                applyAndRender();
+                document.getElementById("lastUpdated").textContent =
+                    "Last updated: " + new Date().toLocaleTimeString("en-IN");
             } catch (err) {
                 showError("Failed to load: " + err.message); setLoading(false);
             }
@@ -1173,7 +1184,6 @@
             setLoading(false);
         }
 
-        function renderAll(bugs) { applyAndRender(); }
 
         // ── Stats ──────────────────────────────────────────────────────
         function renderStats(bugs, sprintFilter, completedCount) {
@@ -1274,6 +1284,19 @@
         <div class="cell-spinner"></div>
         <div class="saved-dot">✓</div>
       </td>
+      <td class="assignee-cell" id="ac-${esc(bug.id)}">
+        <div class="assignee-display" onclick="startEditAssignee('${esc(bug.id)}')">
+          <span class="assignee-name">${esc(bug.assignee || "Unassigned")}</span>
+          <span class="pen">✏</span>
+        </div>
+        <div class="assignee-edit-wrap">
+          <input class="assignee-input" id="ai-${esc(bug.id)}" value="${esc(bug.assignee || "")}" placeholder="email or name"
+            onkeydown="onAssigneeKey(event,'${esc(bug.id)}')"/>
+          <button class="a-save"   onclick="saveAssignee('${esc(bug.id)}')">✓</button>
+          <button class="a-cancel" onclick="cancelAssignee('${esc(bug.id)}','${esc(bug.assignee || "")}')">✕</button>
+        </div>
+        <div class="cell-spinner"></div>
+      </td>
       <td class="pr-cell" id="pc-${esc(bug.id)}">
         <div class="pr-display ${bug.prURL ? 'has-pr' : 'no-pr'}" onclick="startEditPR('${esc(bug.id)}')">
           ${bug.prURL
@@ -1285,19 +1308,6 @@
             onkeydown="onPRKey(event,'${esc(bug.id)}')"/>
           <button class="a-save"   onclick="savePR('${esc(bug.id)}')">✓</button>
           <button class="a-cancel" onclick="cancelPR('${esc(bug.id)}','${esc(bug.prURL || '')}')">✕</button>
-        </div>
-        <div class="cell-spinner"></div>
-      </td>
-      <td class="assignee-cell" id="ac-${esc(bug.id)}">
-        <div class="assignee-display" onclick="startEditAssignee('${esc(bug.id)}')">
-          <span class="assignee-name">${esc(bug.assignee || "Unassigned")}</span>
-          <span class="pen">✏</span>
-        </div>
-        <div class="assignee-edit-wrap">
-          <input class="assignee-input" id="ai-${esc(bug.id)}" value="${esc(bug.assignee || "")}" placeholder="email or name"
-            onkeydown="onAssigneeKey(event,'${esc(bug.id)}')"/>
-          <button class="a-save"   onclick="saveAssignee('${esc(bug.id)}')">✓</button>
-          <button class="a-cancel" onclick="cancelAssignee('${esc(bug.id)}','${esc(bug.assignee || "")}')">✕</button>
         </div>
         <div class="cell-spinner"></div>
       </td>
@@ -1534,7 +1544,7 @@
         document.getElementById("refreshBtn").addEventListener("click", () => {
             const btn = document.getElementById("refreshBtn");
             btn.classList.add("spinning");
-            fetchBugs().finally(() => btn.classList.remove("spinning"));
+            fetchBugs(true).finally(() => btn.classList.remove("spinning"));
         });
 
         // ── Helpers ──────────────────────────────────────────────────────
