@@ -38,6 +38,7 @@ function doPost(e) {
     if (action === "submit")          return handleSubmit(data);
     if (action === "update_status")   return handleUpdateField(data, "status");
     if (action === "update_assignee") return handleUpdateField(data, "assignee");
+    if (action === "update_pr")       return handleUpdateField(data, "pr");
 
     return jsonResponse({ success: false, message: "Unknown action: " + action });
   } catch (err) {
@@ -57,15 +58,19 @@ function handleSubmit(data) {
   return jsonResponse({ success: true, docUrl });
 }
 
-// ── POST update_status / update_assignee ───────────────────────
+// ── POST update_status / update_assignee / update_pr ───────────
 function handleUpdateField(data, field) {
-  const { bugId, sprintNumber, newStatus, newAssignee } = data;
-  const newValue = field === "status" ? newStatus : newAssignee;
+  const { bugId, sprintNumber, newStatus, newAssignee, newPrURL } = data;
+  const newValue = field === "status" ? newStatus : field === "assignee" ? newAssignee : (newPrURL || "");
 
   Logger.log("handleUpdateField: field=" + field + " bugId=" + bugId + " sprint=" + sprintNumber + " value=" + newValue);
 
-  if (!bugId || !sprintNumber || !newValue) {
-    return jsonResponse({ success: false, message: "Missing bugId, sprintNumber, or new value" });
+  if (!bugId || !sprintNumber) {
+    return jsonResponse({ success: false, message: "Missing bugId or sprintNumber" });
+  }
+  // PR can be cleared (empty string is valid); status and assignee must have a value
+  if (field !== "pr" && !newValue) {
+    return jsonResponse({ success: false, message: "Missing new value for field: " + field });
   }
 
   if (field === "status") {
@@ -112,7 +117,7 @@ function updateFieldInDoc(doc, bugId, field, newValue) {
   const priorityColors = { "Low":"#d1fae5", "Medium":"#fef3c7", "High":"#ffedd5", "Critical":"#fee2e2" };
 
   // Row key to look for
-  const targetKey = field === "status" ? "status" : "assignee";
+  const targetKey = field === "status" ? "status" : field === "assignee" ? "assignee" : "prurl";
 
   for (let i = 0; i < n; i++) {
     const child = body.getChild(i);
@@ -131,16 +136,28 @@ function updateFieldInDoc(doc, bugId, field, newValue) {
     if (thisBugId !== bugId) continue;
 
     // Found the right table — update the target field
+    let foundRow = false;
     for (let r = 0; r < table.getNumRows(); r++) {
       const k = table.getCell(r, 0).getText().trim().toLowerCase().replace(/\s+/g, "");
       if (k === targetKey) {
         table.getCell(r, 1).setText(newValue);
-        if (field === "status"   && statusColors[newValue])   table.getCell(r, 1).setBackgroundColor(statusColors[newValue]);
+        if (field === "status"   && statusColors[newValue]) table.getCell(r, 1).setBackgroundColor(statusColors[newValue]);
         if (field === "assignee") table.getCell(r, 1).setBackgroundColor("#f8f9fa");
-        doc.saveAndClose();
-        return true;
+        if (field === "pr")       table.getCell(r, 1).setBackgroundColor("#f0f4ff");
+        foundRow = true;
+        break;
       }
     }
+    // PR row may not exist on older bugs — append it to the table
+    if (!foundRow && field === "pr") {
+      const newRow = table.appendTableRow();
+      newRow.appendTableCell("PR URL")
+            .editAsText().setBold(true).setForegroundColor("#374151");
+      newRow.getCell(0).setBackgroundColor("#f1f3f9");
+      newRow.appendTableCell(newValue).setBackgroundColor("#f0f4ff");
+      foundRow = true;
+    }
+    if (foundRow) { doc.saveAndClose(); return true; }
   }
   return false;
 }
@@ -204,7 +221,7 @@ function parseDocForBugs(doc, sprintNumber, releaseDate) {
           sprintNumber, releaseDate,
           title: cleanTitle,
           reportedBy:"", assignee:"", priority:"", status:"",
-          pageURL:"", videoURL:"", description:"", screenshots:"", submittedAt:"",
+          pageURL:"", videoURL:"", prURL:"", description:"", screenshots:"", submittedAt:"",
         };
       }
 
@@ -247,6 +264,7 @@ function parseDocForBugs(doc, sprintNumber, releaseDate) {
           case "status":      current.status      = v; break;
           case "pageurl":     current.pageURL     = v; break;
           case "videourl":    current.videoURL    = v; break;
+          case "prurl":       current.prURL       = v !== "—" ? v : ""; break;
           case "submittedat": current.submittedAt = v; break;
         }
       }
@@ -311,6 +329,7 @@ function appendBugReport(doc, d) {
     ["Status",       d.status       || "Open"],
     ["Page URL",     d.pageURL      || "—"],
     ["Video URL",    d.videoURL     || "—"],
+    ["PR URL",       "—"],
     ["Submitted At", now()],
     ["Bug ID",       bugId],
   ];
