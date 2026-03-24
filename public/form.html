@@ -927,6 +927,123 @@
         min-width: unset;
       }
     }
+
+    /* Rich text editor */
+    .rich-text-wrapper {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: var(--surface2);
+      transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease);
+    }
+    .rich-text-wrapper:focus-within {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+      background: #131620;
+    }
+    .rich-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .rich-toolbar button {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-2);
+      cursor: pointer;
+      width: 30px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-family: var(--font-body);
+      transition: all 0.15s var(--ease);
+      padding: 0;
+      flex-shrink: 0;
+    }
+    .rich-toolbar button:hover {
+      background: var(--surface3);
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .rich-toolbar button.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .tb-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+    .rich-editor {
+      padding: 10px 13px;
+      min-height: 120px;
+      line-height: 1.65;
+      font-size: 14px;
+      font-family: var(--font-body);
+      color: var(--text);
+      outline: none;
+      overflow-y: auto;
+    }
+    .rich-editor:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-3);
+      font-weight: 300;
+      pointer-events: none;
+      display: block;
+    }
+    .rich-editor ul,
+    .rich-editor ol {
+      padding-left: 22px;
+    }
+    .emoji-wrapper {
+      position: relative;
+    }
+    .emoji-picker {
+      position: absolute;
+      z-index: 200;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 8px;
+      display: none;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 3px;
+      width: 268px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      top: calc(100% + 6px);
+      left: 0;
+    }
+    .emoji-picker.open {
+      display: grid;
+    }
+    .emoji-picker button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 17px;
+      padding: 4px;
+      border-radius: 6px;
+      transition: background 0.1s;
+      line-height: 1;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .emoji-picker button:hover {
+      background: var(--surface3);
+    }
   </style>
 </head>
 
@@ -1075,9 +1192,25 @@
             <div class="row">
               <div class="field">
                 <label>Description <span class="req">*</span></label>
-                <textarea id="description"
-                  placeholder="Describe the bug. What happened? What did you expect? Steps to reproduce?"
-                  required></textarea>
+                <div class="rich-text-wrapper">
+                  <div class="rich-toolbar" id="richToolbar">
+                    <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+                    <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
+                    <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+                    <button type="button" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+                    <span class="tb-divider"></span>
+                    <button type="button" data-cmd="insertUnorderedList" title="Bullet list">&#8226; List</button>
+                    <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+                    <span class="tb-divider"></span>
+                    <span class="emoji-wrapper">
+                      <button type="button" id="emojiBtn" title="Insert emoji">😊</button>
+                      <div class="emoji-picker" id="emojiPicker"></div>
+                    </span>
+                  </div>
+                  <div class="rich-editor" id="descriptionEditor" contenteditable="true"
+                    data-placeholder="Describe the bug. What happened? What did you expect? Steps to reproduce?"></div>
+                </div>
+                <textarea id="description" style="display:none;" required></textarea>
               </div>
             </div>
             <div class="row">
@@ -1134,6 +1267,82 @@
     // ─── Config ────────────────────────────────────────────────
     // No SCRIPT_URL needed here — form posts to /api/submit (Vercel serverless)
     const API = '/api/submit';
+    // ───────────────────────────────────────────────────────────
+
+    // ─── Rich Text Editor ──────────────────────────────────────
+    (function () {
+      const editor = document.getElementById('descriptionEditor');
+      const hiddenTA = document.getElementById('description');
+      const toolbar = document.getElementById('richToolbar');
+
+      // Sync editor content → hidden textarea
+      function syncToHidden() {
+        hiddenTA.value = editor.innerHTML.trim() === '<br>' ? '' : editor.innerText.trim();
+      }
+      editor.addEventListener('input', syncToHidden);
+
+      // Toolbar buttons
+      toolbar.querySelectorAll('button[data-cmd]').forEach(btn => {
+        btn.addEventListener('mousedown', e => {
+          e.preventDefault(); // keep focus in editor
+          document.execCommand(btn.dataset.cmd, false, null);
+          updateActiveStates();
+          syncToHidden();
+        });
+      });
+
+      // Update active states for format buttons
+      function updateActiveStates() {
+        toolbar.querySelectorAll('button[data-cmd]').forEach(btn => {
+          try {
+            btn.classList.toggle('active', document.queryCommandState(btn.dataset.cmd));
+          } catch (_) {}
+        });
+      }
+      editor.addEventListener('keyup', updateActiveStates);
+      editor.addEventListener('mouseup', updateActiveStates);
+      editor.addEventListener('selectionchange', updateActiveStates);
+
+      // Emoji picker
+      const EMOJIS = [
+        '😀','😁','😂','🤣','😊','😍','🥰','😎','🤔','😅','😬','😭','😤','😡','🤯','🥳',
+        '👍','👎','👏','🙌','🤝','💪','🙏','💯','✅','❌','⚠️','🔥','👀','✌️','🤞','🖐️',
+        '🐛','🚀','💡','🔧','🛠️','📋','📌','📎','🗂️','💾','🖥️','📱','🔗','📝','🧪','⚡',
+      ];
+      const picker = document.getElementById('emojiPicker');
+      const emojiBtn = document.getElementById('emojiBtn');
+
+      EMOJIS.forEach(em => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = em;
+        b.title = em;
+        b.addEventListener('mousedown', e => {
+          e.preventDefault();
+          editor.focus();
+          document.execCommand('insertText', false, em);
+          syncToHidden();
+          picker.classList.remove('open');
+        });
+        picker.appendChild(b);
+      });
+
+      let savedRange = null;
+      emojiBtn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        // Save current selection
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
+        picker.classList.toggle('open');
+      });
+
+      // Close picker on outside click
+      document.addEventListener('mousedown', e => {
+        if (!picker.contains(e.target) && e.target !== emojiBtn) {
+          picker.classList.remove('open');
+        }
+      });
+    })();
     // ───────────────────────────────────────────────────────────
 
     // Pills
@@ -1228,8 +1437,14 @@
         ['description', 'Description'],
       ];
       for (const [id, label] of checks) {
-        if (!document.getElementById(id).value.trim()) {
-          document.getElementById(id).focus();
+        const el = document.getElementById(id);
+        const val = id === 'description'
+          ? document.getElementById('descriptionEditor').innerText.trim()
+          : el.value.trim();
+        if (!val) {
+          id === 'description'
+            ? document.getElementById('descriptionEditor').focus()
+            : el.focus();
           return `Please fill in "${label}".`;
         }
       }
@@ -1294,7 +1509,7 @@
         pageURL: document.getElementById('pageURL').value.trim(),
         priority: document.getElementById('priority').value,
         status: document.getElementById('status').value,
-        description: document.getElementById('description').value.trim(),
+        description: document.getElementById('descriptionEditor').innerHTML.trim(),
         screenshots,  // Array of { name, mimeType, base64 }
         videoURL,
       };
