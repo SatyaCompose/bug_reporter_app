@@ -1160,10 +1160,6 @@
                 <label>Page URL <span class="req">*</span></label>
                 <input type="url" id="pageURL" placeholder="https://yoursite.com/page-with-bug" required />
               </div>
-              <div class="field">
-                <label>PR URL <span style="color:var(--text-3);font-size:9px;">(optional)</span></label>
-                <input type="url" id="prURL" placeholder="https://github.com/org/repo/pull/123" />
-              </div>
             </div>
           </div>
         </div>
@@ -1564,7 +1560,6 @@
         reportedBy: document.getElementById('reportedBy').value.trim(),
         assignee: document.getElementById('assignee').value.trim(),
         pageURL: document.getElementById('pageURL').value.trim(),
-        prURL: document.getElementById('prURL').value.trim() || undefined,
         priority: document.getElementById('priority').value,
         status: document.getElementById('status').value,
         description: document.getElementById('descriptionEditor').innerHTML.trim(),
