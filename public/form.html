@@ -1223,7 +1223,6 @@
                   <div class="pill s-open" data-val="Open">Open</div>
                   <div class="pill s-inprogress" data-val="In Progress">In Progress</div>
                   <div class="pill s-resolved" data-val="Resolved">Resolved</div>
-                  <div class="pill s-closed" data-val="Closed">Closed</div>
                   <div class="pill s-nofixrequired" data-val="No Fix Required">No Fix Required</div>
                 </div>
                 <div id="statusHint" class="status-hint"></div>
@@ -1427,8 +1426,7 @@
     });
 
     const STATUS_HINTS = {
-      'Resolved':        { cls: 'hint-resolved',      text: '✓ Fixed — the bug has been addressed and a fix has been deployed.' },
-      'Closed':          { cls: 'hint-closed',         text: '✕ Not an issue — no fix required, working as intended or out of scope.' },
+      'Resolved':        { cls: 'hint-resolved',      text: '✓ PR raised — the bug has been addressed and a fix is awaiting deployment.' },
       'No Fix Required': { cls: 'hint-nofixrequired', text: '⬜ No fix needed — closed without action, working as intended or explicitly out of scope.' },
     };
     document.querySelectorAll('#statusGroup .pill').forEach(p => {

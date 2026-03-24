@@ -1157,7 +1157,7 @@
         }
 
         const ACTIVE_STATUSES    = ["Open", "In Progress", "Resolved"];
-        const COMPLETED_STATUSES = ["Closed", "No Fix Required"];
+        const COMPLETED_STATUSES = ["No Fix Required"];
 
         // ── Client-side filter + render ────────────────────────────────
         function applyAndRender() {
@@ -1258,7 +1258,7 @@
         function esc(s) { const d = document.createElement("div"); d.textContent = String(s ?? ""); return d.innerHTML; }
         function shorten(s, n) { return s && s.length > n ? s.slice(0, n) + "…" : s || ""; }
 
-        function sClass(s) { return { Open: "s-open", "In Progress": "s-inprogress", Resolved: "s-resolved", Closed: "s-closed", "No Fix Required": "s-nofixrequired" }[s] || ""; }
+        function sClass(s) { return { Open: "s-open", "In Progress": "s-inprogress", Resolved: "s-resolved", "No Fix Required": "s-nofixrequired" }[s] || ""; }
         function pBadge(p) { return `<span class="badge ${{ "Low": "p-low", "Medium": "p-medium", "High": "p-high", "Critical": "p-critical" }[p] || ""}">${esc(p || "—")}</span>`; }
         function sBadge(s) { return `<span class="badge ${sClass(s)}">${esc(s || "—")}</span>`; }
 
@@ -1278,7 +1278,7 @@
       <td class="status-cell" id="sc-${esc(bug.id)}">
         <span class="badge ${sClass(bug.status)}">${esc(bug.status || "—")}
           <select class="status-select" onchange="updateStatus(event,'${esc(bug.id)}')" title="Change status">
-            ${["Open", "In Progress", "Resolved", "Closed", "No Fix Required"].map(s => `<option value="${s}"${s === bug.status ? " selected" : ""}>${s}</option>`).join("")}
+            ${["Open", "In Progress", "Resolved", "No Fix Required"].map(s => `<option value="${s}"${s === bug.status ? " selected" : ""}>${s}</option>`).join("")}
           </select>
         </span>
         <div class="cell-spinner"></div>
