@@ -1,7 +1,7 @@
 // api/update.ts — Vercel Serverless Function
-// Updates status OR assignee of a bug in the Google Doc
+// Updates status, assignee, or prURL of a bug in the Google Doc
 //
-// Body: { field: "status"|"assignee", bugId, sprintNumber, newStatus?, newAssignee? }
+// Body: { field: "status"|"assignee"|"pr", bugId, sprintNumber, newStatus?, newAssignee?, newPrURL? }
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAppsScriptUrl } from "../src/env";
@@ -33,12 +33,13 @@ export default async function handler(
     return;
   }
 
-  const { field, bugId, sprintNumber, newStatus, newAssignee } = req.body as {
-    field: "status" | "assignee";
+  const { field, bugId, sprintNumber, newStatus, newAssignee, newPrURL } = req.body as {
+    field: "status" | "assignee" | "pr";
     bugId: string;
     sprintNumber: string;
     newStatus?: string;
     newAssignee?: string;
+    newPrURL?: string;
   };
 
   // Validate
@@ -53,7 +54,7 @@ export default async function handler(
   if (!field) {
     res
       .status(400)
-      .json({ success: false, message: "Missing field (status|assignee)" });
+      .json({ success: false, message: "Missing field (status|assignee|pr)" });
     return;
   }
 
@@ -79,12 +80,19 @@ export default async function handler(
     }
   }
 
+  if (field === "pr" && newPrURL && newPrURL.trim()) {
+    try { new URL(newPrURL.trim()); } catch {
+      res.status(400).json({ success: false, message: "Invalid PR URL" });
+      return;
+    }
+  }
+
   try {
-    const action = field === "status" ? "update_status" : "update_assignee";
-    const payload = { action, bugId, sprintNumber, newStatus, newAssignee };
+    const action = field === "status" ? "update_status" : field === "assignee" ? "update_assignee" : "update_pr";
+    const payload = { action, bugId, sprintNumber, newStatus, newAssignee, newPrURL };
 
     console.log(
-      `[update] ${action} | bug=${bugId} | sprint=${sprintNumber} | value=${newStatus ?? newAssignee}`,
+      `[update] ${action} | bug=${bugId} | sprint=${sprintNumber} | value=${newStatus ?? newAssignee ?? newPrURL}`,
     );
 
     const response = await fetch(APPS_SCRIPT_URL, {

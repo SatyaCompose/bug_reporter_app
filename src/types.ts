@@ -18,6 +18,7 @@ export interface BugReportPayload {
   description: string;
   screenshots: ScreenshotAttachment[]; // array of image objects
   videoURL?: string;
+  prURL?: string;
 }
 
 export interface BugReport {
@@ -33,6 +34,7 @@ export interface BugReport {
   description: string;
   screenshots: string; // stored as comma-separated names in doc, returned as string
   videoURL: string;
+  prURL?: string;
   submittedAt: string;
 }
 

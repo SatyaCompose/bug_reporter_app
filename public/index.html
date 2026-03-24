@@ -605,6 +605,65 @@
 
         .status-cell.saved .saved-dot { display: flex }
 
+        /* ── PR cell ────────────────────────────────── */
+        .pr-cell { position: relative; min-width: 110px }
+
+        .pr-display {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 7px;
+            font-size: 12px;
+            border: 1px solid transparent;
+            transition: all .18s;
+            max-width: 160px;
+            font-family: var(--font-mono)
+        }
+
+        .pr-display.has-pr { color: #a5b4fc }
+        .pr-display.no-pr  { color: var(--text-3) }
+
+        .pr-display:hover {
+            border-color: var(--border-light);
+            background: var(--surface3);
+            color: var(--text)
+        }
+
+        .pr-link {
+            color: #a5b4fc;
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 90px;
+            display: inline-block
+        }
+        .pr-link:hover { text-decoration: underline }
+
+        .pr-edit-wrap { display: none; align-items: center; gap: 4px }
+        .pr-cell.editing .pr-display  { display: none }
+        .pr-cell.editing .pr-edit-wrap { display: flex }
+
+        .pr-input {
+            background: var(--surface2);
+            border: 1px solid var(--border-focus);
+            border-radius: 6px;
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            padding: 5px 9px;
+            outline: none;
+            width: 160px;
+            box-shadow: 0 0 0 3px var(--accent-dim)
+        }
+
+        .pr-cell.updating .pr-edit-wrap { opacity: .5; pointer-events: none }
+        .pr-cell.updating .cell-spinner { display: block }
+
         /* ── Assignee edit ──────────────────────────── */
         .assignee-cell { position: relative; min-width: 165px }
 
@@ -971,6 +1030,7 @@
                             <th>Priority</th>
                             <th>Status</th>
                             <th>Assignee</th>
+                            <th>PR</th>
                             <th>Page URL</th>
                             <th>Doc</th>
                             <th>Submitted</th>
@@ -978,7 +1038,7 @@
                     </thead>
                     <tbody id="bugTableBody">
                         <tr class="state-row">
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="spinner-ring"></div>Loading…
                             </td>
                         </tr>
@@ -1029,6 +1089,10 @@
                 <div class="modal-field">
                     <div class="modal-field-label">Page URL</div>
                     <div class="modal-field-value" id="mPageURL">—</div>
+                </div>
+                <div class="modal-field" id="mPrWrap" style="display:none">
+                    <div class="modal-field-label">Pull Request</div>
+                    <div class="modal-field-value" id="mPrURL">—</div>
                 </div>
                 <div class="modal-field" id="mVideoWrap" style="display:none">
                     <div class="modal-field-label">Video URL</div>
@@ -1162,7 +1226,7 @@
             document.getElementById("bugCount").textContent = bugs.length + " bug" + (bugs.length !== 1 ? "s" : "");
             const tbody = document.getElementById("bugTableBody");
             if (!bugs.length) {
-                tbody.innerHTML = `<tr class="state-row"><td colspan="8">No bugs found.</td></tr>`;
+                tbody.innerHTML = `<tr class="state-row"><td colspan="9">No bugs found.</td></tr>`;
                 return;
             }
             tbody.innerHTML = bugs.map((bug, i) => {
@@ -1179,6 +1243,20 @@
         </span>
         <div class="cell-spinner"></div>
         <div class="saved-dot">✓</div>
+      </td>
+      <td class="pr-cell" id="pc-${esc(bug.id)}">
+        <div class="pr-display ${bug.prURL ? 'has-pr' : 'no-pr'}" onclick="startEditPR('${esc(bug.id)}')">
+          ${bug.prURL
+            ? `<a class="pr-link" href="${esc(bug.prURL)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${esc(bug.prURL)}">⤴ ${esc(prLabel(bug.prURL))}</a><span class="pen">✏</span>`
+            : `<span style="opacity:.45">+ Add PR</span>`}
+        </div>
+        <div class="pr-edit-wrap">
+          <input class="pr-input" id="pi-${esc(bug.id)}" value="${esc(bug.prURL || '')}" placeholder="https://github.com/.../pull/..."
+            onkeydown="onPRKey(event,'${esc(bug.id)}')"/>
+          <button class="a-save"   onclick="savePR('${esc(bug.id)}')">✓</button>
+          <button class="a-cancel" onclick="cancelPR('${esc(bug.id)}','${esc(bug.prURL || '')}')">✕</button>
+        </div>
+        <div class="cell-spinner"></div>
       </td>
       <td class="assignee-cell" id="ac-${esc(bug.id)}">
         <div class="assignee-display" onclick="startEditAssignee('${esc(bug.id)}')">
@@ -1242,6 +1320,74 @@
                 showError("Status update failed: " + err.message);
             } finally {
                 cell.classList.remove("updating");
+            }
+        }
+
+        // ── PR Edit ─────────────────────────────────────────────────────
+        function prLabel(url) {
+            if (!url) return "";
+            try {
+                const u = new URL(url);
+                const parts = u.pathname.split("/").filter(Boolean);
+                const idx = parts.indexOf("pull");
+                if (idx !== -1) return "#" + parts[idx + 1];
+                return u.hostname.replace(/^www\./, "");
+            } catch { return "PR"; }
+        }
+
+        function startEditPR(bugId) {
+            document.getElementById("pc-" + bugId).classList.add("editing");
+            const inp = document.getElementById("pi-" + bugId);
+            inp.focus(); inp.select();
+        }
+
+        function cancelPR(bugId, original) {
+            document.getElementById("pi-" + bugId).value = original;
+            document.getElementById("pc-" + bugId).classList.remove("editing");
+        }
+
+        function onPRKey(event, bugId) {
+            if (event.key === "Enter") savePR(bugId);
+            if (event.key === "Escape") {
+                const bug = allBugs.find(b => b.id === bugId);
+                cancelPR(bugId, bug?.prURL || "");
+            }
+        }
+
+        async function savePR(bugId) {
+            const bug = allBugs.find(b => b.id === bugId);
+            if (!bug) return;
+            const cell = document.getElementById("pc-" + bugId);
+            const input = document.getElementById("pi-" + bugId);
+            const newPrURL = input.value.trim();
+            const old = bug.prURL || "";
+
+            if (newPrURL === old) { cell.classList.remove("editing"); return; }
+            if (newPrURL && !/^https?:\/\//.test(newPrURL)) {
+                showError("PR URL must start with http:// or https://");
+                input.focus(); return;
+            }
+
+            cell.classList.add("updating");
+            try {
+                const res = await fetch("/api/update", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ field: "pr", bugId, sprintNumber: bug.sprintNumber, newPrURL })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || "Failed");
+                bug.prURL = newPrURL;
+                const display = cell.querySelector(".pr-display");
+                display.className = "pr-display " + (newPrURL ? "has-pr" : "no-pr");
+                display.innerHTML = newPrURL
+                    ? `<a class="pr-link" href="${esc(newPrURL)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${esc(newPrURL)}">⤴ ${esc(prLabel(newPrURL))}</a><span class="pen">✏</span>`
+                    : `<span style="opacity:.45">+ Add PR</span>`;
+                cell.classList.remove("editing");
+            } catch (err) {
+                input.value = old;
+                showError("PR update failed: " + err.message);
+            } finally {
+                cell.classList.remove("updating", "editing");
             }
         }
 
@@ -1316,6 +1462,11 @@
             docLink.href = docUrl;
             docLink.style.display = docUrl ? "" : "none";
 
+            const pw = document.getElementById("mPrWrap");
+            pw.style.display = bug.prURL ? "" : "none";
+            if (bug.prURL) document.getElementById("mPrURL").innerHTML =
+                `<a href="${esc(bug.prURL)}" target="_blank" rel="noopener" style="color:#a5b4fc">⤴ ${esc(bug.prURL)}</a>`;
+
             const vw = document.getElementById("mVideoWrap");
             vw.style.display = bug.videoURL ? "" : "none";
             if (bug.videoURL) document.getElementById("mVideoURL").innerHTML =
@@ -1363,7 +1514,7 @@
         // ── Helpers ──────────────────────────────────────────────────────
         function setLoading(on) {
             if (on) document.getElementById("bugTableBody").innerHTML =
-                `<tr class="state-row"><td colspan="8"><div class="spinner-ring"></div>Loading…</td></tr>`;
+                `<tr class="state-row"><td colspan="9"><div class="spinner-ring"></div>Loading…</td></tr>`;
         }
         function showError(msg) {
             const el = document.getElementById("errorBanner");
