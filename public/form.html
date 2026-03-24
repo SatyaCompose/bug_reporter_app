@@ -1222,8 +1222,26 @@
                     <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
                     <button type="button" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
                     <span class="tb-divider"></span>
-                    <button type="button" data-cmd="insertUnorderedList" title="Bullet list">&#8226; List</button>
-                    <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+                    <button type="button" data-cmd="insertUnorderedList" title="Bullet list">
+                      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="2" cy="3.5" r="1.25" fill="currentColor"/>
+                        <rect x="5" y="2.75" width="9" height="1.5" rx=".75" fill="currentColor"/>
+                        <circle cx="2" cy="7.5" r="1.25" fill="currentColor"/>
+                        <rect x="5" y="6.75" width="9" height="1.5" rx=".75" fill="currentColor"/>
+                        <circle cx="2" cy="11.5" r="1.25" fill="currentColor"/>
+                        <rect x="5" y="10.75" width="9" height="1.5" rx=".75" fill="currentColor"/>
+                      </svg>
+                    </button>
+                    <button type="button" data-cmd="insertOrderedList" title="Numbered list">
+                      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <text x="0" y="4.5" font-size="4.5" font-family="monospace" fill="currentColor">1.</text>
+                        <rect x="5" y="2.75" width="9" height="1.5" rx=".75" fill="currentColor"/>
+                        <text x="0" y="8.5" font-size="4.5" font-family="monospace" fill="currentColor">2.</text>
+                        <rect x="5" y="6.75" width="9" height="1.5" rx=".75" fill="currentColor"/>
+                        <text x="0" y="12.5" font-size="4.5" font-family="monospace" fill="currentColor">3.</text>
+                        <rect x="5" y="10.75" width="9" height="1.5" rx=".75" fill="currentColor"/>
+                      </svg>
+                    </button>
                     <span class="tb-divider"></span>
                     <span class="emoji-wrapper">
                       <button type="button" id="emojiBtn" title="Insert emoji">😊</button>
