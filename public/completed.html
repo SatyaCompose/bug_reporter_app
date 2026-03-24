@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Completed Tasks — BugTracker</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #07090e;
+            --surface: #0d1018;
+            --surface2: #131720;
+            --surface3: #181d28;
+            --border: #1e2333;
+            --border-light: #252d40;
+            --border-focus: #5b7af8;
+            --accent: #5b7af8;
+            --accent-dim: rgba(91, 122, 248, 0.1);
+            --red: #f16674;
+            --red-dim: rgba(241, 102, 116, 0.1);
+            --green: #2dd4a0;
+            --green-dim: rgba(45, 212, 160, 0.08);
+            --yellow: #f5c842;
+            --orange: #fb8c3f;
+            --purple: #a78bfa;
+            --text: #e8edf8;
+            --text-2: #9aa5c0;
+            --text-3: #627090;
+            --font-head: 'Syne', sans-serif;
+            --font-body: 'DM Sans', sans-serif;
+            --font-mono: 'DM Mono', monospace;
+            --r: 14px;
+            --r-sm: 9px;
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow: 0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.25);
+            --shadow-lg: 0 2px 8px rgba(0,0,0,.5), 0 12px 40px rgba(0,0,0,.35);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+        html { scroll-behavior: smooth }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(91,122,248,.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(91,122,248,.018) 1px, transparent 1px);
+            background-size: 40px 40px
+        }
+
+        /* ── Topbar ─────────────────────────────────── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(7, 9, 14, .92);
+            backdrop-filter: blur(20px) saturate(1.4);
+            border-bottom: 1px solid var(--border);
+            padding: 0 clamp(16px, 4vw, 48px);
+            height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px
+        }
+
+        .topbar-left { display: flex; align-items: center; gap: 6px }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-family: var(--font-head);
+            font-size: 14.5px;
+            font-weight: 700;
+            text-decoration: none;
+            color: var(--text);
+            margin-right: 8px;
+            letter-spacing: -.01em
+        }
+
+        .brand-icon {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #5b7af8, #7c5af8);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            box-shadow: 0 0 12px rgba(91,122,248,.35)
+        }
+
+        .nav-link {
+            font-size: 13px;
+            color: var(--text-2);
+            text-decoration: none;
+            padding: 5px 12px;
+            border-radius: 7px;
+            transition: all .18s var(--ease);
+            font-weight: 400
+        }
+
+        .nav-link:hover { color: var(--text); background: var(--surface2) }
+
+        .nav-link.active {
+            color: #a5b4fc;
+            background: rgba(91,122,248,.12);
+            font-weight: 500
+        }
+
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--surface2);
+            border: 1px solid var(--border-light);
+            border-radius: var(--r-sm);
+            color: var(--text-2);
+            font-size: 12.5px;
+            font-family: var(--font-body);
+            padding: 7px 15px;
+            cursor: pointer;
+            transition: all .18s var(--ease);
+            letter-spacing: .01em
+        }
+
+        .refresh-btn:hover {
+            border-color: var(--accent);
+            color: var(--text);
+            background: var(--surface3);
+            box-shadow: 0 0 0 3px var(--accent-dim)
+        }
+
+        .refresh-btn .icon { display: inline-block }
+        .refresh-btn.spinning .icon { animation: spin .7s linear infinite }
+
+        @keyframes spin { to { transform: rotate(360deg) } }
+
+        /* ── Layout ─────────────────────────────────── */
+        .page {
+            position: relative;
+            z-index: 1;
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: clamp(24px, 3.5vw, 48px) clamp(16px, 4vw, 48px)
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 32px
+        }
+
+        .page-header h1 {
+            font-family: var(--font-head);
+            font-size: clamp(22px, 3.5vw, 32px);
+            font-weight: 800;
+            letter-spacing: -.03em;
+            color: #e8edf8
+        }
+
+        .last-updated {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-2);
+            margin-top: 5px
+        }
+
+        /* ── Stats ──────────────────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 22px 22px 18px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            animation: fadeUp .45s var(--ease) both;
+            transition: border-color .2s, box-shadow .2s
+        }
+
+        .stat-card:hover { border-color: var(--border-light); box-shadow: var(--shadow-lg) }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            border-radius: 2px 2px 0 0
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -30px; right: -30px;
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            opacity: .06;
+            pointer-events: none
+        }
+
+        .stat-card.purple::before { background: linear-gradient(90deg, var(--purple), #7c5af8) }
+        .stat-card.purple::after  { background: var(--purple) }
+        .stat-card.green::before  { background: linear-gradient(90deg, var(--green), #34d399) }
+        .stat-card.green::after   { background: var(--green) }
+        .stat-card.slate::before  { background: linear-gradient(90deg, #64748b, #94a3b8) }
+        .stat-card.slate::after   { background: #64748b }
+        .stat-card.blue::before   { background: linear-gradient(90deg, var(--accent), #7c5af8) }
+        .stat-card.blue::after    { background: var(--accent) }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(14px) }
+            to   { opacity: 1; transform: translateY(0) }
+        }
+
+        .stat-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--text-3);
+            margin-bottom: 10px
+        }
+
+        .stat-value {
+            font-family: var(--font-head);
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -.04em;
+            line-height: 1;
+            color: #f0f4ff
+        }
+
+        .stat-sub {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 6px;
+            font-family: var(--font-mono)
+        }
+
+        /* ── Filters ────────────────────────────────── */
+        .filters-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 16px 20px;
+            margin-bottom: 22px;
+            box-shadow: var(--shadow)
+        }
+
+        .filter-field { display: flex; flex-direction: column; gap: 5px }
+
+        .filter-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-3);
+            letter-spacing: .07em;
+            text-transform: uppercase
+        }
+
+        .filter-input, .filter-select {
+            background: var(--surface2);
+            border: 1px solid var(--border-light);
+            border-radius: var(--r-sm);
+            color: var(--text-2);
+            font-family: var(--font-body);
+            font-size: 13px;
+            padding: 8px 12px;
+            outline: none;
+            transition: border-color .18s, box-shadow .18s
+        }
+
+        .filter-input:focus, .filter-select:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+            color: var(--text)
+        }
+
+        .select-wrap { position: relative }
+        .select-wrap::after {
+            content: '⌄';
+            position: absolute;
+            right: 10px; top: 50%;
+            transform: translateY(-58%);
+            color: var(--text-3);
+            pointer-events: none;
+            font-size: 14px
+        }
+        .select-wrap select { padding-right: 28px; -webkit-appearance: none; appearance: none }
+
+        .clear-btn {
+            background: none;
+            border: 1px solid var(--border-light);
+            border-radius: var(--r-sm);
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 8px 14px;
+            cursor: pointer;
+            transition: all .18s;
+            align-self: flex-end
+        }
+
+        .clear-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-dim) }
+
+        /* ── Sprint Groups ───────────────────────────── */
+        .sprint-group {
+            margin-bottom: 28px;
+            animation: fadeUp .4s var(--ease) both
+        }
+
+        .sprint-group-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            padding: 14px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r) var(--r) 0 0;
+            border-bottom: 2px solid var(--purple);
+        }
+
+        .sprint-group-header h2 {
+            font-family: var(--font-head);
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -.02em;
+            color: var(--purple)
+        }
+
+        .sprint-release {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-3);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            padding: 2px 10px
+        }
+
+        .sprint-bug-count {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-2);
+            background: var(--surface3);
+            border: 1px solid var(--border-light);
+            border-radius: 100px;
+            padding: 2px 10px;
+            margin-left: auto
+        }
+
+        /* ── Table ──────────────────────────────────── */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 var(--r) var(--r);
+            box-shadow: var(--shadow)
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 860px;
+            background: var(--surface)
+        }
+
+        thead th {
+            text-align: left;
+            padding: 11px 16px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--text-3);
+            border-bottom: 1px solid var(--border);
+            background: var(--surface2);
+            white-space: nowrap
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background .14s var(--ease)
+        }
+
+        tbody tr:hover { background: rgba(19, 23, 32, .8) }
+        tbody tr:last-child { border-bottom: none }
+
+        td { padding: 13px 16px; vertical-align: middle }
+
+        .td-sprint {
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            color: #a78bfa;
+            white-space: nowrap;
+            font-weight: 500
+        }
+
+        .td-title { max-width: 240px }
+
+        .td-title span {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: color .15s;
+            font-weight: 450
+        }
+
+        .td-title span:hover { color: #a5b4fc }
+
+        .td-meta { color: var(--text-2); white-space: nowrap; font-size: 12px }
+
+        .doc-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            color: var(--text-3);
+            text-decoration: none;
+            padding: 4px 9px;
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            transition: all .18s var(--ease);
+            white-space: nowrap
+        }
+
+        .doc-link:hover { border-color: var(--accent); color: #a5b4fc; background: var(--accent-dim) }
+
+        /* ── Badges ─────────────────────────────────── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            font-weight: 500;
+            white-space: nowrap;
+            letter-spacing: .02em
+        }
+
+        .p-low      { background: rgba(45,212,160,.08);  color: var(--green);  border: 1px solid rgba(45,212,160,.2) }
+        .p-medium   { background: rgba(245,200,66,.08);  color: var(--yellow); border: 1px solid rgba(245,200,66,.2) }
+        .p-high     { background: rgba(251,140,63,.08);  color: var(--orange); border: 1px solid rgba(251,140,63,.2) }
+        .p-critical { background: rgba(241,102,116,.1);  color: var(--red);    border: 1px solid rgba(241,102,116,.25) }
+
+        .s-resolved      { background: rgba(45,212,160,.08); color: var(--green);  border: 1px solid rgba(45,212,160,.2) }
+        .s-closed        { background: rgba(148,163,184,.06);color: #64748b;       border: 1px solid rgba(148,163,184,.15) }
+        .s-nofixrequired { background: rgba(100,116,139,.06);color: #94a3b8;       border: 1px solid rgba(100,116,139,.15) }
+
+        /* ── Error banner ───────────────────────────── */
+        .error-banner {
+            display: none;
+            background: var(--red-dim);
+            border: 1px solid rgba(241,102,116,.22);
+            border-radius: var(--r-sm);
+            color: #fca5a5;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            padding: 12px 16px;
+            margin-bottom: 18px
+        }
+
+        /* ── Empty / loading ────────────────────────── */
+        .state-row td {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            font-size: 12.5px
+        }
+
+        .spinner-ring {
+            width: 34px; height: 34px;
+            margin: 0 auto 14px;
+            border: 2px solid var(--border-light);
+            border-top-color: var(--purple);
+            border-radius: 50%;
+            animation: spin .75s linear infinite
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            font-size: 12.5px
+        }
+
+        /* ── Modal ──────────────────────────────────── */
+        .modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(7,9,14,.85);
+            backdrop-filter: blur(16px) saturate(1.2);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 20px
+        }
+
+        .modal-bg.show { display: flex }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg), 0 0 60px rgba(167,139,250,.06);
+            animation: pop .28s cubic-bezier(.34,1.56,.64,1) both
+        }
+
+        @keyframes pop {
+            from { opacity: 0; transform: scale(.92) translateY(12px) }
+            to   { opacity: 1; transform: scale(1) translateY(0) }
+        }
+
+        .modal-top {
+            padding: 22px 26px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            z-index: 1
+        }
+
+        .modal-top-left { display: flex; flex-direction: column; gap: 9px; flex: 1; min-width: 0 }
+
+        .modal-title {
+            font-family: var(--font-head);
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -.025em;
+            line-height: 1.3;
+            word-break: break-word
+        }
+
+        .modal-doc-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(91,122,248,.22);
+            border-radius: 100px;
+            padding: 4px 13px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: #a5b4fc;
+            text-decoration: none;
+            width: fit-content;
+            transition: all .18s var(--ease)
+        }
+
+        .modal-doc-link:hover { background: rgba(91,122,248,.18); border-color: rgba(91,122,248,.38) }
+
+        .modal-close-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            color: var(--text-2);
+            cursor: pointer;
+            width: 32px; height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+            transition: all .18s var(--ease)
+        }
+
+        .modal-close-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-dim) }
+
+        .modal-body { padding: 22px 26px; display: flex; flex-direction: column; gap: 16px }
+
+        .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
+
+        .modal-field { display: flex; flex-direction: column; gap: 5px }
+
+        .modal-field-label {
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: .08em
+        }
+
+        .modal-field-value { font-size: 13.5px; word-break: break-all; color: var(--text) }
+
+        .modal-desc {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            padding: 14px 16px;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--text-2);
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap
+        }
+
+        @media (max-width: 600px) {
+            .modal-row { grid-template-columns: 1fr }
+        }
+
+        @media (max-width: 420px) {
+            .topbar .nav-link { display: none }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="/" class="brand">
+                <div class="brand-icon">🐛</div><span>BugTracker</span>
+            </a>
+            <a href="/form.html" class="nav-link">Report</a>
+            <a href="/" class="nav-link">Dashboard</a>
+            <a href="/completed.html" class="nav-link active">Completed</a>
+        </div>
+        <button class="refresh-btn" id="refreshBtn"><span class="icon">↻</span> Refresh</button>
+    </header>
+
+    <div class="page">
+        <div class="page-header">
+            <div>
+                <h1>Completed Tasks</h1>
+                <div class="last-updated" id="lastUpdated">Loading…</div>
+            </div>
+        </div>
+
+        <div class="error-banner" id="errorBanner"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card purple" style="animation-delay:.05s">
+                <div class="stat-label">Total Completed</div>
+                <div class="stat-value" id="statTotal">—</div>
+                <div class="stat-sub" id="statSprints">across — sprints</div>
+            </div>
+            <div class="stat-card green" style="animation-delay:.1s">
+                <div class="stat-label">Resolved</div>
+                <div class="stat-value" id="statResolved">—</div>
+                <div class="stat-sub">fixed &amp; deployed</div>
+            </div>
+            <div class="stat-card slate" style="animation-delay:.15s">
+                <div class="stat-label">Closed</div>
+                <div class="stat-value" id="statClosed">—</div>
+                <div class="stat-sub">no longer applicable</div>
+            </div>
+            <div class="stat-card blue" style="animation-delay:.2s">
+                <div class="stat-label">No Fix Required</div>
+                <div class="stat-value" id="statNoFix">—</div>
+                <div class="stat-sub">working as intended</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="filter-field">
+                <div class="filter-label">Sprint</div>
+                <input class="filter-input" id="fSprint" placeholder="e.g. 14" type="number" min="1" style="width:100px" />
+            </div>
+            <div class="filter-field">
+                <div class="filter-label">Priority</div>
+                <div class="select-wrap">
+                    <select class="filter-select" id="fPriority">
+                        <option value="">All</option>
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                        <option>Critical</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-field">
+                <div class="filter-label">Status</div>
+                <div class="select-wrap">
+                    <select class="filter-select" id="fStatus">
+                        <option value="">All Completed</option>
+                        <option>Resolved</option>
+                        <option>Closed</option>
+                        <option>No Fix Required</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-field">
+                <div class="filter-label">Assignee</div>
+                <input class="filter-input" id="fAssignee" placeholder="email or name" style="min-width:160px" />
+            </div>
+            <button class="clear-btn" id="clearBtn">✕ Clear</button>
+        </div>
+
+        <div id="completedContent">
+            <table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+                <tbody>
+                    <tr class="state-row">
+                        <td colspan="8">
+                            <div class="spinner-ring"></div>Loading…
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-bg" id="modalBg">
+        <div class="modal">
+            <div class="modal-top">
+                <div class="modal-top-left">
+                    <div class="modal-title" id="modalTitle">—</div>
+                    <a class="modal-doc-link" id="modalDocLink" href="#" target="_blank" rel="noopener"
+                        style="display:none">📄 Open in Google Docs ↗</a>
+                </div>
+                <button class="modal-close-btn" id="modalCloseBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-row">
+                    <div class="modal-field">
+                        <div class="modal-field-label">Sprint</div>
+                        <div class="modal-field-value" id="mSprint">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Release Date</div>
+                        <div class="modal-field-value" id="mRelease">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Reported By</div>
+                        <div class="modal-field-value" id="mReportedBy">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Assignee</div>
+                        <div class="modal-field-value" id="mAssignee">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Priority</div>
+                        <div class="modal-field-value" id="mPriority">—</div>
+                    </div>
+                    <div class="modal-field">
+                        <div class="modal-field-label">Status</div>
+                        <div class="modal-field-value" id="mStatus">—</div>
+                    </div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-field-label">Page URL</div>
+                    <div class="modal-field-value" id="mPageURL">—</div>
+                </div>
+                <div class="modal-field" id="mPrWrap" style="display:none">
+                    <div class="modal-field-label">Pull Request</div>
+                    <div class="modal-field-value" id="mPrURL">—</div>
+                </div>
+                <div class="modal-field" id="mVideoWrap" style="display:none">
+                    <div class="modal-field-label">Video URL</div>
+                    <div class="modal-field-value" id="mVideoURL">—</div>
+                </div>
+                <div class="modal-field" id="mSsWrap" style="display:none">
+                    <div class="modal-field-label">Screenshots</div>
+                    <div class="modal-field-value" id="mScreenshots">—</div>
+                </div>
+                <div>
+                    <div class="modal-field-label" style="margin-bottom:6px">Description</div>
+                    <div class="modal-desc" id="mDescription">—</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-field-label">Submitted At</div>
+                    <div class="modal-field-value" id="mSubmittedAt" style="color:var(--text-3);font-size:12px">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allBugs = [];
+        const docUrls = {};
+        const COMPLETED_STATUSES = ["Resolved", "Closed", "No Fix Required"];
+
+        // ── Fetch ──────────────────────────────────────────────────────
+        async function fetchBugs(filters = {}) {
+            setLoading(true); hideError();
+            const p = new URLSearchParams();
+            if (filters.sprint)    p.set("sprint", filters.sprint);
+            if (filters.priority)  p.set("priority", filters.priority);
+            if (filters.assignee)  p.set("assignee", filters.assignee);
+            // Note: we always fetch all statuses, then filter client-side for completed
+            try {
+                const res = await fetch("/api/bugs" + (p.toString() ? "?" + p : ""));
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || "API error");
+                allBugs = data.bugs || [];
+                allBugs.forEach(b => { if (b.docUrl) docUrls[b.sprintNumber] = b.docUrl; });
+                renderAll();
+                document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleTimeString("en-IN");
+            } catch (err) {
+                showError("Failed to load: " + err.message); setLoading(false);
+            }
+        }
+
+        function getFilters() {
+            return {
+                sprint:   document.getElementById("fSprint").value.trim(),
+                priority: document.getElementById("fPriority").value,
+                status:   document.getElementById("fStatus").value,
+                assignee: document.getElementById("fAssignee").value.trim(),
+            };
+        }
+
+        function applyClientFilters(bugs) {
+            const f = getFilters();
+            return bugs.filter(b => {
+                if (!COMPLETED_STATUSES.includes(b.status)) return false;
+                if (f.status   && b.status !== f.status) return false;
+                if (f.priority && b.priority !== f.priority) return false;
+                if (f.assignee && !b.assignee.toLowerCase().includes(f.assignee.toLowerCase())) return false;
+                if (f.sprint   && b.sprintNumber !== f.sprint) return false;
+                return true;
+            });
+        }
+
+        function renderAll() {
+            const filtered = applyClientFilters(allBugs);
+            renderStats(filtered);
+            renderGroups(filtered);
+            setLoading(false);
+        }
+
+        // ── Stats ──────────────────────────────────────────────────────
+        function renderStats(bugs) {
+            const total    = bugs.length;
+            const resolved = bugs.filter(b => b.status === "Resolved").length;
+            const closed   = bugs.filter(b => b.status === "Closed").length;
+            const noFix    = bugs.filter(b => b.status === "No Fix Required").length;
+            const sprints  = new Set(bugs.map(b => b.sprintNumber)).size;
+            document.getElementById("statTotal").textContent    = total;
+            document.getElementById("statSprints").textContent  = "across " + sprints + " sprint" + (sprints !== 1 ? "s" : "");
+            document.getElementById("statResolved").textContent = resolved;
+            document.getElementById("statClosed").textContent   = closed;
+            document.getElementById("statNoFix").textContent    = noFix;
+        }
+
+        // ── Render grouped by sprint ────────────────────────────────────
+        function esc(s) { const d = document.createElement("div"); d.textContent = String(s ?? ""); return d.innerHTML; }
+        function shorten(s, n) { return s && s.length > n ? s.slice(0, n) + "…" : s || ""; }
+
+        function pBadge(p) {
+            const cls = { Low: "p-low", Medium: "p-medium", High: "p-high", Critical: "p-critical" }[p] || "";
+            return `<span class="badge ${cls}">${esc(p || "—")}</span>`;
+        }
+
+        function sBadge(s) {
+            const cls = { Resolved: "s-resolved", Closed: "s-closed", "No Fix Required": "s-nofixrequired" }[s] || "";
+            return `<span class="badge ${cls}">${esc(s || "—")}</span>`;
+        }
+
+        function renderGroups(bugs) {
+            const container = document.getElementById("completedContent");
+
+            if (!bugs.length) {
+                container.innerHTML = `<div class="empty-state">No completed tasks found.</div>`;
+                return;
+            }
+
+            // Group by sprint number (descending)
+            const sprintMap = {};
+            bugs.forEach(b => {
+                const key = b.sprintNumber;
+                if (!sprintMap[key]) sprintMap[key] = [];
+                sprintMap[key].push(b);
+            });
+
+            const sortedSprints = Object.keys(sprintMap).sort((a, b) => Number(b) - Number(a));
+
+            container.innerHTML = sortedSprints.map((sprint, gi) => {
+                const sprintBugs = sprintMap[sprint];
+                const release = sprintBugs[0]?.releaseDate || "?";
+                const docUrl  = docUrls[sprint] || sprintBugs[0]?.docUrl || "";
+
+                const rows = sprintBugs.map((bug, i) => {
+                    const bugDocUrl = docUrls[bug.sprintNumber] || bug.docUrl || "";
+                    return `<tr style="animation-delay:${i * .03}s">
+                        <td class="td-sprint">#${esc(bug.sprintNumber)}</td>
+                        <td class="td-title">
+                            <span onclick="openModal('${esc(bug.id)}')" title="${esc(bug.title)}">${esc(bug.title)}</span>
+                        </td>
+                        <td>${pBadge(bug.priority)}</td>
+                        <td>${sBadge(bug.status)}</td>
+                        <td class="td-meta" style="max-width:170px;overflow:hidden;text-overflow:ellipsis">
+                            ${bug.assignee ? esc(bug.assignee) : '<span style="color:var(--text-3)">—</span>'}
+                        </td>
+                        <td class="td-meta" style="max-width:150px;overflow:hidden;text-overflow:ellipsis">
+                            ${bug.pageURL ? `<a href="${esc(bug.pageURL)}" target="_blank" rel="noopener"
+                                style="color:var(--text-3);font-size:11px;font-family:var(--font-mono);text-decoration:none"
+                                title="${esc(bug.pageURL)}">${esc(shorten(bug.pageURL, 26))}</a>` : "—"}
+                        </td>
+                        <td>
+                            ${bugDocUrl ? `<a class="doc-link" href="${esc(bugDocUrl)}" target="_blank" rel="noopener">📄 Doc ↗</a>` :
+                                `<span style="color:var(--text-3);font-size:11px;font-family:var(--font-mono)">—</span>`}
+                        </td>
+                        <td class="td-meta">${esc(bug.submittedAt || "—")}</td>
+                    </tr>`;
+                }).join("");
+
+                return `
+                <div class="sprint-group" style="animation-delay:${gi * .06}s">
+                    <div class="sprint-group-header">
+                        <h2>Sprint #${esc(sprint)}</h2>
+                        <span class="sprint-release">Release: ${esc(release)}</span>
+                        ${docUrl ? `<a class="doc-link" href="${esc(docUrl)}" target="_blank" rel="noopener" style="font-size:10.5px">📄 Doc ↗</a>` : ""}
+                        <span class="sprint-bug-count">${sprintBugs.length} task${sprintBugs.length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sprint</th>
+                                    <th>Title</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Assignee</th>
+                                    <th>Page URL</th>
+                                    <th>Doc</th>
+                                    <th>Submitted</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }).join("");
+        }
+
+        // ── Modal ───────────────────────────────────────────────────────
+        function openModal(id) {
+            const bug = allBugs.find(b => b.id === id);
+            if (!bug) return;
+            document.getElementById("modalTitle").textContent = bug.title;
+            document.getElementById("mSprint").textContent = "#" + bug.sprintNumber;
+            document.getElementById("mRelease").textContent = bug.releaseDate || "—";
+            document.getElementById("mReportedBy").textContent = bug.reportedBy || "—";
+            document.getElementById("mAssignee").textContent = bug.assignee || "—";
+            document.getElementById("mPriority").innerHTML = pBadge(bug.priority);
+            document.getElementById("mStatus").innerHTML = sBadge(bug.status);
+            document.getElementById("mPageURL").innerHTML = bug.pageURL
+                ? `<a href="${esc(bug.pageURL)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(bug.pageURL)}</a>` : "—";
+            document.getElementById("mDescription").innerHTML = bug.description || "—";
+            document.getElementById("mSubmittedAt").textContent = bug.submittedAt || "—";
+
+            const docUrl = docUrls[bug.sprintNumber] || bug.docUrl || "";
+            const docLink = document.getElementById("modalDocLink");
+            docLink.href = docUrl;
+            docLink.style.display = docUrl ? "" : "none";
+
+            const pw = document.getElementById("mPrWrap");
+            pw.style.display = bug.prURL ? "" : "none";
+            if (bug.prURL) document.getElementById("mPrURL").innerHTML =
+                `<a href="${esc(bug.prURL)}" target="_blank" rel="noopener" style="color:#a5b4fc">⤴ ${esc(bug.prURL)}</a>`;
+
+            const vw = document.getElementById("mVideoWrap");
+            vw.style.display = bug.videoURL ? "" : "none";
+            if (bug.videoURL) document.getElementById("mVideoURL").innerHTML =
+                `<a href="${esc(bug.videoURL)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(bug.videoURL)}</a>`;
+
+            const sw = document.getElementById("mSsWrap");
+            sw.style.display = bug.screenshots ? "" : "none";
+            if (bug.screenshots) document.getElementById("mScreenshots").textContent = bug.screenshots;
+
+            document.getElementById("modalBg").classList.add("show");
+        }
+
+        document.getElementById("modalCloseBtn").addEventListener("click", () => document.getElementById("modalBg").classList.remove("show"));
+        document.getElementById("modalBg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove("show"); });
+
+        // ── Filters ─────────────────────────────────────────────────────
+        let debTimer;
+        function applyFilters() {
+            clearTimeout(debTimer);
+            debTimer = setTimeout(() => renderAll(), 250);
+        }
+
+        ["fSprint", "fPriority", "fStatus", "fAssignee"].forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener("input", applyFilters);
+            el.addEventListener("change", applyFilters);
+        });
+
+        document.getElementById("clearBtn").addEventListener("click", () => {
+            ["fSprint", "fPriority", "fStatus", "fAssignee"].forEach(id => document.getElementById(id).value = "");
+            renderAll();
+        });
+
+        document.getElementById("refreshBtn").addEventListener("click", () => {
+            const btn = document.getElementById("refreshBtn");
+            btn.classList.add("spinning");
+            fetchBugs().finally(() => btn.classList.remove("spinning"));
+        });
+
+        // ── Helpers ──────────────────────────────────────────────────────
+        function setLoading(on) {
+            if (on) document.getElementById("completedContent").innerHTML =
+                `<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden"><tbody><tr class="state-row"><td colspan="8"><div class="spinner-ring"></div>Loading…</td></tr></tbody></table>`;
+        }
+
+        function showError(msg) {
+            const el = document.getElementById("errorBanner");
+            el.textContent = "⚠ " + msg; el.style.display = "block";
+            setTimeout(() => el.style.display = "none", 6000);
+        }
+
+        function hideError() { document.getElementById("errorBanner").style.display = "none"; }
+
+        fetchBugs();
+    </script>
+</body>
+
+</html>

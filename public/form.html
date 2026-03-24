@@ -583,6 +583,31 @@
       color: #94a3b8;
     }
 
+    .pill.s-nofixrequired.active {
+      background: rgba(100, 116, 139, 0.1);
+      border-color: rgba(100, 116, 139, 0.3);
+      color: #94a3b8;
+    }
+
+    .status-hint.hint-nofixrequired {
+      background: rgba(100, 116, 139, 0.07);
+      border: 1px solid rgba(100, 116, 139, 0.2);
+      color: var(--text-2);
+    }
+
+    .field-error {
+      font-size: 11px;
+      color: var(--red);
+      font-family: var(--font-mono);
+      margin-top: 5px;
+      display: none;
+    }
+    .field-error.visible { display: block; }
+    input.invalid, textarea.invalid, select.invalid {
+      border-color: rgba(247, 92, 110, 0.6) !important;
+      box-shadow: 0 0 0 3px rgba(247, 92, 110, 0.12) !important;
+    }
+
     /* File upload */
     .upload-zone {
       border: 1.5px dashed var(--border);
@@ -1015,6 +1040,9 @@
       color: var(--text);
       outline: none;
       overflow-y: auto;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
     }
     .rich-editor:empty::before {
       content: attr(data-placeholder);
@@ -1086,6 +1114,8 @@
           style="font-size:13px;color:var(--accent);background:rgba(79,110,247,0.1);padding:5px 10px;border-radius:6px;text-decoration:none;">Report</a>
         <a href="/"
           style="font-size:13px;color:var(--text-2);padding:5px 10px;border-radius:6px;text-decoration:none;">Dashboard</a>
+        <a href="/completed.html"
+          style="font-size:13px;color:var(--text-2);padding:5px 10px;border-radius:6px;text-decoration:none;">Completed</a>
       </div>
       <div class="topbar-meta">
         <div class="tag">Live</div>
@@ -1194,6 +1224,7 @@
                   <div class="pill s-inprogress" data-val="In Progress">In Progress</div>
                   <div class="pill s-resolved" data-val="Resolved">Resolved</div>
                   <div class="pill s-closed" data-val="Closed">Closed</div>
+                  <div class="pill s-nofixrequired" data-val="No Fix Required">No Fix Required</div>
                 </div>
                 <div id="statusHint" class="status-hint"></div>
                 <input type="hidden" id="status" required />
@@ -1396,8 +1427,9 @@
     });
 
     const STATUS_HINTS = {
-      'Resolved': { cls: 'hint-resolved', text: '✓ Fixed — the bug has been addressed and a fix has been deployed.' },
-      'Closed':   { cls: 'hint-closed',   text: '✕ Not an issue — no fix required, working as intended or out of scope.' },
+      'Resolved':        { cls: 'hint-resolved',      text: '✓ Fixed — the bug has been addressed and a fix has been deployed.' },
+      'Closed':          { cls: 'hint-closed',         text: '✕ Not an issue — no fix required, working as intended or out of scope.' },
+      'No Fix Required': { cls: 'hint-nofixrequired', text: '⬜ No fix needed — closed without action, working as intended or explicitly out of scope.' },
     };
     document.querySelectorAll('#statusGroup .pill').forEach(p => {
       p.addEventListener('click', () => {
@@ -1479,31 +1511,120 @@
     }
 
     // Validation
-    function validate() {
-      const checks = [
-        ['sprintNumber', 'Sprint Number'],
-        ['releaseDate', 'Release Date'],
-        ['title', 'Title'],
-        ['reportedBy', 'Reported By'],
-        ['assignee', 'Assignee Email'],
-        ['pageURL', 'Page URL'],
-        ['description', 'Description'],
-      ];
-      for (const [id, label] of checks) {
-        const el = document.getElementById(id);
-        const val = id === 'description'
-          ? document.getElementById('descriptionEditor').innerText.trim()
-          : el.value.trim();
-        if (!val) {
-          id === 'description'
-            ? document.getElementById('descriptionEditor').focus()
-            : el.focus();
-          return `Please fill in "${label}".`;
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const URL_RE   = /^https?:\/\/.+/i;
+
+    function clearFieldErrors() {
+      document.querySelectorAll('.field-error').forEach(e => e.classList.remove('visible'));
+      document.querySelectorAll('.invalid').forEach(e => e.classList.remove('invalid'));
+    }
+
+    function fieldError(id, msg) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.add('invalid');
+        let errEl = el.parentElement.querySelector('.field-error');
+        if (!errEl) {
+          errEl = document.createElement('div');
+          errEl.className = 'field-error';
+          el.parentElement.appendChild(errEl);
         }
+        errEl.textContent = msg;
+        errEl.classList.add('visible');
+        el.focus();
       }
-      if (!document.getElementById('priority').value) return 'Please select a Priority.';
-      if (!document.getElementById('status').value) return 'Please select a Status.';
-      return null;
+    }
+
+    function validate() {
+      clearFieldErrors();
+      let firstError = null;
+
+      // Sprint Number
+      const sprintEl = document.getElementById('sprintNumber');
+      const sprintVal = sprintEl.value.trim();
+      if (!sprintVal) {
+        sprintEl.classList.add('invalid'); sprintEl.focus();
+        firstError = firstError || 'Please fill in "Sprint Number".';
+      } else if (parseInt(sprintVal, 10) < 1 || !Number.isInteger(+sprintVal)) {
+        fieldError('sprintNumber', 'Sprint number must be a positive integer.');
+        firstError = firstError || 'Sprint number must be a positive integer.';
+      }
+
+      // Release Date
+      const rdEl = document.getElementById('releaseDate');
+      if (!rdEl.value.trim()) {
+        rdEl.classList.add('invalid');
+        firstError = firstError || 'Please fill in "Release Date".';
+      }
+
+      // Title
+      const titleEl = document.getElementById('title');
+      if (!titleEl.value.trim()) {
+        titleEl.classList.add('invalid');
+        firstError = firstError || 'Please fill in "Title".';
+      } else if (titleEl.value.trim().length < 5) {
+        fieldError('title', 'Title must be at least 5 characters.');
+        firstError = firstError || 'Title must be at least 5 characters.';
+      }
+
+      // Reported By
+      const rbEl = document.getElementById('reportedBy');
+      if (!rbEl.value.trim()) {
+        rbEl.classList.add('invalid');
+        firstError = firstError || 'Please fill in "Reported By".';
+      } else if (rbEl.value.trim().length < 2) {
+        fieldError('reportedBy', 'Name must be at least 2 characters.');
+        firstError = firstError || 'Name must be at least 2 characters.';
+      }
+
+      // Assignee Email
+      const assigneeEl = document.getElementById('assignee');
+      const assigneeVal = assigneeEl.value.trim();
+      if (!assigneeVal) {
+        assigneeEl.classList.add('invalid');
+        firstError = firstError || 'Please fill in "Assignee Email".';
+      } else if (!EMAIL_RE.test(assigneeVal)) {
+        fieldError('assignee', 'Please enter a valid email address (e.g. dev@team.com).');
+        firstError = firstError || 'Invalid assignee email address.';
+      }
+
+      // Page URL
+      const pageURLEl = document.getElementById('pageURL');
+      const pageURLVal = pageURLEl.value.trim();
+      if (!pageURLVal) {
+        pageURLEl.classList.add('invalid');
+        firstError = firstError || 'Please fill in "Page URL".';
+      } else if (!URL_RE.test(pageURLVal)) {
+        fieldError('pageURL', 'Page URL must start with http:// or https://');
+        firstError = firstError || 'Invalid Page URL.';
+      }
+
+      // Description
+      const descVal = document.getElementById('descriptionEditor').innerText.trim();
+      if (!descVal) {
+        document.getElementById('descriptionEditor').focus();
+        firstError = firstError || 'Please fill in "Description".';
+      } else if (descVal.length < 10) {
+        document.getElementById('descriptionEditor').focus();
+        firstError = firstError || 'Description must be at least 10 characters.';
+      }
+
+      // Video URL (optional but must be valid if provided)
+      const videoEl = document.getElementById('videoURL');
+      const videoVal = videoEl.value.trim();
+      if (videoVal && !URL_RE.test(videoVal)) {
+        fieldError('videoURL', 'Video URL must start with http:// or https://');
+        firstError = firstError || 'Invalid Video URL.';
+      }
+
+      if (!document.getElementById('priority').value) {
+        firstError = firstError || 'Please select a Priority.';
+      }
+      if (!document.getElementById('status').value) {
+        firstError = firstError || 'Please select a Status.';
+      }
+
+      return firstError;
     }
 
     // Submit
@@ -1599,15 +1720,26 @@
       }
     });
 
+    // Clear errors on input
+    document.getElementById('bugForm').querySelectorAll('input, textarea, select').forEach(el => {
+      el.addEventListener('input', () => {
+        el.classList.remove('invalid');
+        const errEl = el.parentElement.querySelector('.field-error');
+        if (errEl) errEl.classList.remove('visible');
+      });
+    });
+
     // Reset
     document.getElementById('resetBtn').addEventListener('click', () => {
       document.getElementById('bugForm').reset();
       files = [];
       renderChips();
+      clearFieldErrors();
       document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
       document.getElementById('priority').value = '';
       document.getElementById('status').value = '';
       document.getElementById('errorBox').style.display = 'none';
+      document.getElementById('descriptionEditor').innerHTML = '';
     });
 
     // Modal close
