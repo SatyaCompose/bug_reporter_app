@@ -957,6 +957,7 @@
             <a href="/form.html" class="nav-link">Report</a>
             <a href="/" class="nav-link active">Dashboard</a>
             <a href="/completed.html" class="nav-link">Completed</a>
+            <a href="/developers.html" class="nav-link">Developers</a>
         </div>
         <button class="refresh-btn" id="refreshBtn"><span class="icon">↻</span> Refresh</button>
     </header>
@@ -1066,14 +1067,12 @@
                             <th>Assignee</th>
                             <th>Developer</th>
                             <th>PR</th>
-                            <th>Page URL</th>
-                            <th>Doc</th>
                             <th>Submitted</th>
                         </tr>
                     </thead>
                     <tbody id="bugTableBody">
                         <tr class="state-row">
-                            <td colspan="10">
+                            <td colspan="8">
                                 <div class="spinner-ring"></div>Loading…
                             </td>
                         </tr>
@@ -1082,6 +1081,8 @@
             </div>
         </div>
     </div>
+
+    <datalist id="dev-options"></datalist>
 
     <!-- Modal -->
     <div class="modal-bg" id="modalBg">
@@ -1181,6 +1182,7 @@
                 allBugs = data.bugs || [];
                 allBugs.forEach(b => { if (b.docUrl) docUrls[b.sprintNumber] = b.docUrl; });
                 lastFetchAt = Date.now();
+                updateDevDatalist();
                 applyAndRender();
                 document.getElementById("lastUpdated").textContent =
                     "Last updated: " + new Date().toLocaleTimeString("en-IN");
@@ -1299,11 +1301,10 @@
             document.getElementById("bugCount").textContent = bugs.length + " bug" + (bugs.length !== 1 ? "s" : "");
             const tbody = document.getElementById("bugTableBody");
             if (!bugs.length) {
-                tbody.innerHTML = `<tr class="state-row"><td colspan="10">No bugs found.</td></tr>`;
+                tbody.innerHTML = `<tr class="state-row"><td colspan="8">No bugs found.</td></tr>`;
                 return;
             }
             tbody.innerHTML = bugs.map((bug, i) => {
-                const docUrl = docUrls[bug.sprintNumber] || bug.docUrl || "";
                 return `<tr style="animation-delay:${i * .03}s">
       <td class="td-sprint">#${esc(bug.sprintNumber)}</td>
       <td class="td-title"><span onclick="openModal('${esc(bug.id)}')" title="${esc(bug.title)}">${esc(bug.title)}</span></td>
@@ -1337,7 +1338,7 @@
         </div>
         <div class="developer-edit-wrap">
           <input class="developer-input" id="di-${esc(bug.id)}" value="${esc(bug.developer || "")}" placeholder="Developer name"
-            onkeydown="onDeveloperKey(event,'${esc(bug.id)}')"/>
+            list="dev-options" onkeydown="onDeveloperKey(event,'${esc(bug.id)}')"/>
           <button class="a-save"   onclick="saveDeveloper('${esc(bug.id)}')">✓</button>
           <button class="a-cancel" onclick="cancelDeveloper('${esc(bug.id)}','${esc(bug.developer || "")}')">✕</button>
         </div>
@@ -1357,13 +1358,6 @@
         </div>
         <div class="cell-spinner"></div>
       </td>
-      <td class="td-meta" style="max-width:150px;overflow:hidden;text-overflow:ellipsis">
-        ${bug.pageURL ? `<a href="${esc(bug.pageURL)}" target="_blank" rel="noopener"
-          style="color:var(--text-3);font-size:11px;font-family:var(--font-mono);text-decoration:none"
-          title="${esc(bug.pageURL)}">${esc(shorten(bug.pageURL, 26))}</a>` : "—"}
-      </td>
-      <td>${docUrl ? `<a class="doc-link" href="${esc(docUrl)}" target="_blank" rel="noopener">📄 Doc ↗</a>` :
-                        `<span style="color:var(--text-3);font-size:11px;font-family:var(--font-mono)">—</span>`}</td>
       <td class="td-meta">${esc(bug.submittedAt || "—")}</td>
     </tr>`;
             }).join("");
@@ -1647,7 +1641,13 @@
         // ── Helpers ──────────────────────────────────────────────────────
         function setLoading(on) {
             if (on) document.getElementById("bugTableBody").innerHTML =
-                `<tr class="state-row"><td colspan="9"><div class="spinner-ring"></div>Loading…</td></tr>`;
+                `<tr class="state-row"><td colspan="8"><div class="spinner-ring"></div>Loading…</td></tr>`;
+        }
+
+        function updateDevDatalist() {
+            const devs = [...new Set(allBugs.map(b => b.developer).filter(Boolean))].sort();
+            const dl = document.getElementById("dev-options");
+            if (dl) dl.innerHTML = devs.map(d => `<option value="${esc(d)}">`).join("");
         }
         function showError(msg) {
             const el = document.getElementById("errorBanner");

@@ -379,6 +379,7 @@
             <a href="/form.html" class="nav-link">Report</a>
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/completed.html" class="nav-link active">Completed</a>
+            <a href="/developers.html" class="nav-link">Developers</a>
         </div>
         <button class="refresh-btn" id="refreshBtn"><span class="icon">↻</span> Refresh</button>
     </header>
@@ -435,11 +436,13 @@
 
         <div id="completedContent">
             <table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-                <thead><tr><th>Sprint</th><th>Title</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Developer</th><th>PR</th><th>Page URL</th><th>Doc</th><th>Submitted</th></tr></thead>
-                <tbody><tr class="state-row"><td colspan="10"><div class="spinner-ring"></div>Loading…</td></tr></tbody>
+                <thead><tr><th>Sprint</th><th>Title</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Developer</th><th>PR</th><th>Submitted</th></tr></thead>
+                <tbody><tr class="state-row"><td colspan="8"><div class="spinner-ring"></div>Loading…</td></tr></tbody>
             </table>
         </div>
     </div>
+
+    <datalist id="dev-options"></datalist>
 
     <!-- Detail Modal -->
     <div class="modal-bg" id="modalBg">
@@ -496,6 +499,7 @@
                 allBugs = data.bugs || [];
                 allBugs.forEach(b => { if (b.docUrl) docUrls[b.sprintNumber] = b.docUrl; });
                 lastFetchAt = Date.now();
+                updateDevDatalist();
                 renderAll();
                 document.getElementById("lastUpdated").textContent =
                     "Last updated: " + new Date().toLocaleTimeString("en-IN");
@@ -580,7 +584,6 @@
                 const docUrl     = docUrls[sprint] || sprintBugs[0]?.docUrl || "";
 
                 const rows = sprintBugs.map((bug, i) => {
-                    const bugDocUrl = docUrls[bug.sprintNumber] || bug.docUrl || "";
                     return `<tr style="animation-delay:${i*.03}s">
                         <td class="td-sprint">#${esc(bug.sprintNumber)}</td>
                         <td class="td-title"><span onclick="openModal('${esc(bug.id)}')" title="${esc(bug.title)}">${esc(bug.title)}</span></td>
@@ -614,7 +617,7 @@
                             </div>
                             <div class="developer-edit-wrap">
                                 <input class="developer-input" id="di-${esc(bug.id)}" value="${esc(bug.developer||"")}" placeholder="Developer name"
-                                    onkeydown="onDeveloperKey(event,'${esc(bug.id)}')"/>
+                                    list="dev-options" onkeydown="onDeveloperKey(event,'${esc(bug.id)}')"/>
                                 <button class="a-save"   onclick="saveDeveloper('${esc(bug.id)}')">✓</button>
                                 <button class="a-cancel" onclick="cancelDeveloper('${esc(bug.id)}','${esc(bug.developer||"")}')">✕</button>
                             </div>
@@ -634,10 +637,6 @@
                             </div>
                             <div class="cell-spinner"></div>
                         </td>
-                        <td class="td-meta" style="max-width:150px;overflow:hidden;text-overflow:ellipsis">
-                            ${bug.pageURL?`<a href="${esc(bug.pageURL)}" target="_blank" rel="noopener" style="color:var(--text-3);font-size:11px;font-family:var(--font-mono);text-decoration:none" title="${esc(bug.pageURL)}">${esc(shorten(bug.pageURL,26))}</a>`:"—"}
-                        </td>
-                        <td>${bugDocUrl?`<a class="doc-link" href="${esc(bugDocUrl)}" target="_blank" rel="noopener">📄 Doc ↗</a>`:`<span style="color:var(--text-3);font-size:11px;font-family:var(--font-mono)">—</span>`}</td>
                         <td class="td-meta">${esc(bug.submittedAt||"—")}</td>
                     </tr>`;
                 }).join("");
@@ -654,7 +653,7 @@
                         <table>
                             <thead><tr>
                                 <th>Sprint</th><th>Title</th><th>Priority</th><th>Status</th>
-                                <th>Assignee</th><th>Developer</th><th>PR</th><th>Page URL</th><th>Doc</th><th>Submitted</th>
+                                <th>Assignee</th><th>Developer</th><th>PR</th><th>Submitted</th>
                             </tr></thead>
                             <tbody>${rows}</tbody>
                         </table>
@@ -872,7 +871,13 @@
         // ── Helpers ────────────────────────────────────────────────────
         function setLoading(on) {
             if (on) document.getElementById("completedContent").innerHTML =
-                `<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden"><thead><tr><th>Sprint</th><th>Title</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Developer</th><th>PR</th><th>Page URL</th><th>Doc</th><th>Submitted</th></tr></thead><tbody><tr class="state-row"><td colspan="10"><div class="spinner-ring"></div>Loading…</td></tr></tbody></table>`;
+                `<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden"><thead><tr><th>Sprint</th><th>Title</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Developer</th><th>PR</th><th>Submitted</th></tr></thead><tbody><tr class="state-row"><td colspan="8"><div class="spinner-ring"></div>Loading…</td></tr></tbody></table>`;
+        }
+
+        function updateDevDatalist() {
+            const devs = [...new Set(allBugs.map(b => b.developer).filter(Boolean))].sort();
+            const dl = document.getElementById("dev-options");
+            if (dl) dl.innerHTML = devs.map(d => `<option value="${esc(d)}">`).join("");
         }
         function showError(msg) {
             const el = document.getElementById("errorBanner");

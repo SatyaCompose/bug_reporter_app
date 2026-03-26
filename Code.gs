@@ -35,10 +35,11 @@ function doPost(e) {
     const action = data.action || "submit";
     Logger.log("doPost action: " + action);
 
-    if (action === "submit")          return handleSubmit(data);
-    if (action === "update_status")   return handleUpdateField(data, "status");
-    if (action === "update_assignee") return handleUpdateField(data, "assignee");
-    if (action === "update_pr")       return handleUpdateField(data, "pr");
+    if (action === "submit")            return handleSubmit(data);
+    if (action === "update_status")     return handleUpdateField(data, "status");
+    if (action === "update_assignee")   return handleUpdateField(data, "assignee");
+    if (action === "update_pr")         return handleUpdateField(data, "pr");
+    if (action === "update_developer")  return handleUpdateField(data, "developer");
 
     return jsonResponse({ success: false, message: "Unknown action: " + action });
   } catch (err) {
@@ -60,21 +61,21 @@ function handleSubmit(data) {
 
 // ── POST update_status / update_assignee / update_pr ───────────
 function handleUpdateField(data, field) {
-  const { bugId, sprintNumber, newStatus, newAssignee, newPrURL } = data;
-  const newValue = field === "status" ? newStatus : field === "assignee" ? newAssignee : (newPrURL || "");
+  const { bugId, sprintNumber, newStatus, newAssignee, newPrURL, newDeveloper } = data;
+  const newValue = field === "status" ? newStatus : field === "assignee" ? newAssignee : field === "developer" ? newDeveloper : (newPrURL || "");
 
   Logger.log("handleUpdateField: field=" + field + " bugId=" + bugId + " sprint=" + sprintNumber + " value=" + newValue);
 
   if (!bugId || !sprintNumber) {
     return jsonResponse({ success: false, message: "Missing bugId or sprintNumber" });
   }
-  // PR can be cleared (empty string is valid); status and assignee must have a value
+  // PR can be cleared (empty string is valid); other fields must have a value
   if (field !== "pr" && !newValue) {
     return jsonResponse({ success: false, message: "Missing new value for field: " + field });
   }
 
   if (field === "status") {
-    const VALID = ["Open", "In Progress", "Resolved", "Closed"];
+    const VALID = ["Open", "In Progress", "Resolved", "No Fix Required"];
     if (!VALID.includes(newValue)) {
       return jsonResponse({ success: false, message: "Invalid status: " + newValue });
     }
@@ -113,11 +114,11 @@ function updateFieldInDoc(doc, bugId, field, newValue) {
   const n    = body.getNumChildren();
 
   // Cell background colours
-  const statusColors   = { "Open":"#dbeafe", "In Progress":"#fef3c7", "Resolved":"#d1fae5", "Closed":"#f1f5f9" };
+  const statusColors   = { "Open":"#dbeafe", "In Progress":"#fef3c7", "Resolved":"#d1fae5", "No Fix Required":"#f1f5f9" };
   const priorityColors = { "Low":"#d1fae5", "Medium":"#fef3c7", "High":"#ffedd5", "Critical":"#fee2e2" };
 
   // Row key to look for
-  const targetKey = field === "status" ? "status" : field === "assignee" ? "assignee" : "prurl";
+  const targetKey = field === "status" ? "status" : field === "assignee" ? "assignee" : field === "developer" ? "developer" : "prurl";
 
   for (let i = 0; i < n; i++) {
     const child = body.getChild(i);
@@ -141,12 +142,22 @@ function updateFieldInDoc(doc, bugId, field, newValue) {
       const k = table.getCell(r, 0).getText().trim().toLowerCase().replace(/\s+/g, "");
       if (k === targetKey) {
         table.getCell(r, 1).setText(newValue);
-        if (field === "status"   && statusColors[newValue]) table.getCell(r, 1).setBackgroundColor(statusColors[newValue]);
-        if (field === "assignee") table.getCell(r, 1).setBackgroundColor("#f8f9fa");
-        if (field === "pr")       table.getCell(r, 1).setBackgroundColor("#f0f4ff");
+        if (field === "status"    && statusColors[newValue]) table.getCell(r, 1).setBackgroundColor(statusColors[newValue]);
+        if (field === "assignee")  table.getCell(r, 1).setBackgroundColor("#f8f9fa");
+        if (field === "developer") table.getCell(r, 1).setBackgroundColor("#f0fff4");
+        if (field === "pr")        table.getCell(r, 1).setBackgroundColor("#f0f4ff");
         foundRow = true;
         break;
       }
+    }
+    // Developer row may not exist on older bugs — append it to the table
+    if (!foundRow && field === "developer") {
+      const newRow = table.appendTableRow();
+      newRow.appendTableCell("Developer")
+            .editAsText().setBold(true).setForegroundColor("#374151");
+      newRow.getCell(0).setBackgroundColor("#f1f3f9");
+      newRow.appendTableCell(newValue).setBackgroundColor("#f0fff4");
+      foundRow = true;
     }
     // PR row may not exist on older bugs — append it to the table
     if (!foundRow && field === "pr") {
@@ -220,7 +231,7 @@ function parseDocForBugs(doc, sprintNumber, releaseDate) {
           id: idMatch ? idMatch[1] : Utilities.getUuid(),
           sprintNumber, releaseDate,
           title: cleanTitle,
-          reportedBy:"", assignee:"", priority:"", status:"",
+          reportedBy:"", assignee:"", developer:"", priority:"", status:"",
           pageURL:"", videoURL:"", prURL:"", description:"", screenshots:"", submittedAt:"",
         };
       }
@@ -260,6 +271,7 @@ function parseDocForBugs(doc, sprintNumber, releaseDate) {
         switch (k) {
           case "reportedby":  current.reportedBy  = v; break;
           case "assignee":    current.assignee    = v; break;
+          case "developer":   current.developer   = v; break;
           case "priority":    current.priority    = v; break;
           case "status":      current.status      = v; break;
           case "pageurl":     current.pageURL     = v; break;
@@ -325,6 +337,7 @@ function appendBugReport(doc, d) {
     ["Release Date", d.releaseDate  || "—"],
     ["Reported By",  d.reportedBy   || "—"],
     ["Assignee",     d.assignee     || "—"],
+    ["Developer",    d.developer    || "—"],
     ["Priority",     d.priority     || "—"],
     ["Status",       d.status       || "Open"],
     ["Page URL",     d.pageURL      || "—"],
@@ -342,10 +355,10 @@ function appendBugReport(doc, d) {
   }
 
   const pc = { Low:"#d1fae5", Medium:"#fef3c7", High:"#ffedd5", Critical:"#fee2e2" };
-  const sc = { Open:"#dbeafe", "In Progress":"#fef3c7", Resolved:"#d1fae5", Closed:"#f1f5f9" };
-  if (d.priority && pc[d.priority]) table.getCell(4, 1).setBackgroundColor(pc[d.priority]);
+  const sc = { Open:"#dbeafe", "In Progress":"#fef3c7", Resolved:"#d1fae5", "No Fix Required":"#f1f5f9" };
+  if (d.priority && pc[d.priority]) table.getCell(5, 1).setBackgroundColor(pc[d.priority]);
   const statusVal = d.status || "Open";
-  if (sc[statusVal]) table.getCell(5, 1).setBackgroundColor(sc[statusVal]);
+  if (sc[statusVal]) table.getCell(6, 1).setBackgroundColor(sc[statusVal]);
 
   body.appendParagraph("").setHeading(DocumentApp.ParagraphHeading.NORMAL);
   body.appendParagraph("Description").setHeading(DocumentApp.ParagraphHeading.HEADING2);
