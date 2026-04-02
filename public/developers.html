@@ -387,26 +387,29 @@
         }
         .lb-row {
             display: flex; align-items: center; gap: 10px;
-            padding: 9px 0; border-bottom: 1px solid var(--border)
+            padding: 10px 0; border-bottom: 1px solid var(--border)
         }
         .lb-row:last-child { border-bottom: none }
         .lb-rank {
             font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-            width: 20px; text-align: center; color: var(--text-3); flex-shrink: 0
+            width: 22px; text-align: center; color: var(--text-3); flex-shrink: 0
         }
         .lb-rank.gold   { color: var(--yellow) }
         .lb-rank.silver { color: #94a3b8 }
         .lb-rank.bronze { color: #b87333 }
         .lb-avatar {
-            width: 28px; height: 28px; border-radius: 50%;
+            width: 30px; height: 30px; border-radius: 50%;
             background: linear-gradient(135deg,#5b7af8,#a78bfa);
             display: flex; align-items: center; justify-content: center;
             font-family: var(--font-head); font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
             letter-spacing: .03em
         }
-        .lb-name { flex: 1; font-weight: 500; color: var(--text); min-width: 0; overflow: hidden; font-size: 13px }
-        .lb-stat { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); white-space: nowrap }
-        .lb-bar-wrap { width: 100px; height: 4px; background: var(--border-light); border-radius: 3px; overflow: hidden; flex-shrink: 0 }
+        .lb-name { flex: 1; min-width: 0; overflow: hidden }
+        .lb-name-main { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+        .lb-name-sub { font-size: 10px; color: var(--text-3); font-family: var(--font-mono); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+        .lb-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0 }
+        .lb-stat { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); white-space: nowrap }
+        .lb-bar-wrap { width: 80px; height: 3px; background: var(--border-light); border-radius: 3px; overflow: hidden }
         .lb-bar { height: 100%; border-radius: 3px; background: linear-gradient(90deg,var(--accent),var(--purple)); transition: width .6s var(--ease) }
 
         /* ── Modal ───────────────────────────────────── */
@@ -723,11 +726,13 @@
                     <div class="lb-rank ${rankCls}">${i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "#" + (i + 1)}</div>
                     <div class="lb-avatar" style="background:${avatarGradient(devIdx)}">${esc(initials)}</div>
                     <div class="lb-name">
-                        <div>${esc(dispName)}</div>
-                        ${isEmail ? `<div style="font-size:10.5px;color:var(--text-3);font-family:var(--font-mono);margin-top:1px">${esc(r.name)}</div>` : ""}
+                        <div class="lb-name-main">${esc(dispName)}</div>
+                        ${isEmail ? `<div class="lb-name-sub">${esc(r.name)}</div>` : ""}
                     </div>
-                    <div class="lb-stat">${r.resolved} resolved · ${r.total} total</div>
-                    <div class="lb-bar-wrap"><div class="lb-bar" style="width:${pct}%"></div></div>
+                    <div class="lb-right">
+                        <div class="lb-stat">${r.resolved} resolved · ${r.total} total</div>
+                        <div class="lb-bar-wrap"><div class="lb-bar" style="width:${pct}%"></div></div>
+                    </div>
                 </div>`;
             }).join("");
         }
