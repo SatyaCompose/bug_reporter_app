@@ -189,31 +189,31 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--r);
-            padding: 22px 26px;
+            padding: 16px 20px;
             margin-bottom: 18px;
-            display: flex; align-items: center; gap: 18px;
+            display: flex; align-items: center; gap: 14px;
             box-shadow: var(--shadow)
         }
         .dev-hero-avatar {
-            width: 54px; height: 54px; border-radius: 50%;
+            width: 38px; height: 38px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-family: var(--font-head); font-size: 18px; font-weight: 800;
+            font-family: var(--font-head); font-size: 13px; font-weight: 800;
             color: #fff; flex-shrink: 0; letter-spacing: .04em;
-            box-shadow: 0 0 18px rgba(91,122,248,.28)
+            box-shadow: 0 0 10px rgba(91,122,248,.22)
         }
         .dev-hero-info { flex: 1; min-width: 0 }
         .dev-hero-name {
-            font-family: var(--font-head); font-size: 19px; font-weight: 800;
+            font-family: var(--font-head); font-size: 16px; font-weight: 800;
             letter-spacing: -.02em; color: var(--text);
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis
         }
         .dev-hero-email {
-            font-size: 11.5px; color: var(--text-3); margin-top: 2px;
+            font-size: 11px; color: var(--text-3); margin-top: 1px;
             font-family: var(--font-mono);
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis
         }
-        .dev-hero-sub { font-size: 12px; color: var(--text-3); margin-top: 4px; font-family: var(--font-mono) }
-        .dev-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px }
+        .dev-hero-sub { font-size: 11.5px; color: var(--text-3); margin-top: 3px; font-family: var(--font-mono) }
+        .dev-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px }
         .dev-badge {
             display: inline-flex; align-items: center; gap: 5px;
             padding: 4px 12px; border-radius: 100px;
@@ -386,26 +386,27 @@
             border-radius: 2px
         }
         .lb-row {
-            display: flex; align-items: center; gap: 12px;
-            padding: 10px 0; border-bottom: 1px solid var(--border)
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 0; border-bottom: 1px solid var(--border)
         }
         .lb-row:last-child { border-bottom: none }
         .lb-rank {
-            font-family: var(--font-mono); font-size: 12px; font-weight: 700;
-            width: 24px; text-align: center; color: var(--text-3)
+            font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+            width: 20px; text-align: center; color: var(--text-3); flex-shrink: 0
         }
         .lb-rank.gold   { color: var(--yellow) }
         .lb-rank.silver { color: #94a3b8 }
         .lb-rank.bronze { color: #b87333 }
         .lb-avatar {
-            width: 34px; height: 34px; border-radius: 50%;
+            width: 28px; height: 28px; border-radius: 50%;
             background: linear-gradient(135deg,#5b7af8,#a78bfa);
             display: flex; align-items: center; justify-content: center;
-            font-family: var(--font-head); font-size: 13px; font-weight: 800; color: #fff; flex-shrink: 0
+            font-family: var(--font-head); font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+            letter-spacing: .03em
         }
-        .lb-name { flex: 1; font-weight: 500; color: var(--text); min-width: 0; overflow: hidden }
-        .lb-stat { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-3) }
-        .lb-bar-wrap { width: 120px; height: 5px; background: var(--border-light); border-radius: 3px; overflow: hidden }
+        .lb-name { flex: 1; font-weight: 500; color: var(--text); min-width: 0; overflow: hidden; font-size: 13px }
+        .lb-stat { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); white-space: nowrap }
+        .lb-bar-wrap { width: 100px; height: 4px; background: var(--border-light); border-radius: 3px; overflow: hidden; flex-shrink: 0 }
         .lb-bar { height: 100%; border-radius: 3px; background: linear-gradient(90deg,var(--accent),var(--purple)); transition: width .6s var(--ease) }
 
         /* ── Modal ───────────────────────────────────── */
