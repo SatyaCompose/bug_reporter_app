@@ -322,16 +322,22 @@
         .assignee-cell.updating .assignee-edit-wrap { opacity:.5;pointer-events:none }
         .assignee-cell.updating .cell-spinner       { display:block }
 
-        /* ── Developer editable cell ── */
-        .developer-cell { position:relative;min-width:150px }
-        .developer-display { display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background .15s }
+        /* ── Developer editable cell (multi) ── */
+        .developer-cell { position:relative;min-width:180px }
+        .developer-display { display:flex;align-items:center;flex-wrap:wrap;gap:4px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background .15s }
         .developer-display:hover { background:var(--surface3) }
-        .developer-name { font-size:12.5px;color:var(--text-2) }
-        .developer-display .pen { font-size:10px;opacity:0;transition:opacity .15s;color:var(--accent) }
+        .developer-display .pen { font-size:10px;opacity:0;transition:opacity .15s;color:var(--accent);flex-shrink:0 }
         .developer-display:hover .pen { opacity:1 }
-        .developer-edit-wrap { display:none;align-items:center;gap:4px }
-        .developer-cell.editing .developer-display  { display:none }
+        .dev-chip { display:inline-flex;align-items:center;background:var(--accent-dim);border:1px solid rgba(91,122,248,.2);border-radius:100px;padding:2px 9px;font-size:11px;color:#a5b4fc;white-space:nowrap }
+        .dev-chip.none { background:none;border-color:transparent;color:var(--text-3) }
+        .developer-edit-wrap { display:none;flex-direction:column;gap:6px;padding:4px 2px }
+        .developer-cell.editing .developer-display   { display:none }
         .developer-cell.editing .developer-edit-wrap { display:flex }
+        .dev-tags-edit { display:flex;flex-wrap:wrap;gap:4px;min-height:10px }
+        .dev-edit-chip { display:inline-flex;align-items:center;gap:3px;background:var(--accent-dim);border:1px solid rgba(91,122,248,.25);border-radius:100px;padding:2px 8px;font-size:11px;color:#a5b4fc }
+        .dev-edit-chip button { background:none;border:none;color:inherit;cursor:pointer;font-size:11px;line-height:1;padding:0 1px;opacity:.7 }
+        .dev-edit-chip button:hover { opacity:1 }
+        .dev-add-row { display:flex;align-items:center;gap:4px }
         .developer-input {
             background:var(--surface2);border:1px solid var(--border-focus);border-radius:6px;
             color:var(--text);font-family:var(--font-body);font-size:12px;
@@ -612,14 +618,18 @@
                         </td>
                         <td class="developer-cell" id="dc-${esc(bug.id)}">
                             <div class="developer-display" onclick="startEditDeveloper('${esc(bug.id)}')">
-                                <span class="developer-name">${esc(bug.developer||"—")}</span>
+                                ${devChipsHTML(bug.developer)}
                                 <span class="pen">✏</span>
                             </div>
-                            <div class="developer-edit-wrap">
-                                <input class="developer-input" id="di-${esc(bug.id)}" value="${esc(bug.developer||"")}" placeholder="Developer name"
-                                    list="dev-options" onkeydown="onDeveloperKey(event,'${esc(bug.id)}')"/>
-                                <button class="a-save"   onclick="saveDeveloper('${esc(bug.id)}')">✓</button>
-                                <button class="a-cancel" onclick="cancelDeveloper('${esc(bug.id)}','${esc(bug.developer||"")}')">✕</button>
+                            <div class="developer-edit-wrap" id="dew-${esc(bug.id)}">
+                                <div class="dev-tags-edit" id="det-${esc(bug.id)}"></div>
+                                <div class="dev-add-row">
+                                    <input class="developer-input" id="di-${esc(bug.id)}" placeholder="Add developer…"
+                                        list="dev-options" onkeydown="onDeveloperKey(event,'${esc(bug.id)}')"/>
+                                    <button class="a-save" onclick="addDevTag('${esc(bug.id)}')">+</button>
+                                    <button class="a-save" onclick="saveDeveloper('${esc(bug.id)}')">✓</button>
+                                    <button class="a-cancel" onclick="cancelDeveloper('${esc(bug.id)}')">✕</button>
+                                </div>
                             </div>
                             <div class="cell-spinner"></div>
                         </td>
@@ -775,28 +785,59 @@
             } finally { cell.classList.remove("updating","editing"); }
         }
 
-        // ── Developer Edit ─────────────────────────────────────────────
-        function startEditDeveloper(bugId) {
-            document.getElementById("dc-"+bugId).classList.add("editing");
-            const inp = document.getElementById("di-"+bugId);
-            inp.focus(); inp.select();
+        // ── Developer Edit (multi) ─────────────────────────────────────
+        function devChipsHTML(devStr) {
+            const devs = (devStr || "").split(",").map(d => d.trim()).filter(Boolean);
+            if (!devs.length) return `<span class="dev-chip none">—</span>`;
+            return devs.map(d => `<span class="dev-chip">${esc(d)}</span>`).join("");
         }
-        function cancelDeveloper(bugId, original) {
-            document.getElementById("di-"+bugId).value = original;
-            document.getElementById("dc-"+bugId).classList.remove("editing");
+        function devEditChipHTML(bugId, name) {
+            return `<span class="dev-edit-chip">${esc(name)}<button onclick="removeDevTag('${esc(bugId)}','${esc(name)}')" title="Remove">×</button></span>`;
+        }
+        function getTagNames(bugId) {
+            return [...document.querySelectorAll(`#det-${bugId} .dev-edit-chip`)].map(el =>
+                el.childNodes[0].textContent.trim()
+            );
+        }
+        function startEditDeveloper(bugId) {
+            const bug = allBugs.find(b => b.id === bugId);
+            if (!bug) return;
+            const tagsEl = document.getElementById("det-" + bugId);
+            const devs = (bug.developer || "").split(",").map(d => d.trim()).filter(Boolean);
+            tagsEl.innerHTML = devs.map(d => devEditChipHTML(bugId, d)).join("");
+            document.getElementById("dc-" + bugId).classList.add("editing");
+            document.getElementById("di-" + bugId).focus();
+        }
+        function addDevTag(bugId) {
+            const inp  = document.getElementById("di-" + bugId);
+            const name = inp.value.trim();
+            if (!name) { inp.focus(); return; }
+            if (!getTagNames(bugId).includes(name)) {
+                document.getElementById("det-" + bugId).insertAdjacentHTML("beforeend", devEditChipHTML(bugId, name));
+            }
+            inp.value = ""; inp.focus();
+        }
+        function removeDevTag(bugId, name) {
+            document.querySelectorAll(`#det-${bugId} .dev-edit-chip`).forEach(el => {
+                if (el.childNodes[0].textContent.trim() === name) el.remove();
+            });
+        }
+        function cancelDeveloper(bugId) {
+            document.getElementById("di-" + bugId).value = "";
+            document.getElementById("dc-" + bugId).classList.remove("editing");
         }
         function onDeveloperKey(event, bugId) {
-            if (event.key === "Enter") saveDeveloper(bugId);
-            if (event.key === "Escape") { const bug = allBugs.find(b=>b.id===bugId); cancelDeveloper(bugId, bug?.developer||""); }
+            if (event.key === "Enter") { event.preventDefault(); addDevTag(bugId); }
+            if (event.key === "Escape") cancelDeveloper(bugId);
         }
         async function saveDeveloper(bugId) {
             const bug = allBugs.find(b => b.id === bugId);
             if (!bug) return;
-            const cell  = document.getElementById("dc-"+bugId);
-            const input = document.getElementById("di-"+bugId);
-            const newDeveloper = input.value.trim();
+            const cell = document.getElementById("dc-" + bugId);
+            const inp  = document.getElementById("di-" + bugId);
+            if (inp.value.trim()) addDevTag(bugId);
+            const newDeveloper = getTagNames(bugId).join(", ");
             const old = bug.developer || "";
-            if (!newDeveloper) { input.focus(); return; }
             if (newDeveloper === old) { cell.classList.remove("editing"); return; }
             cell.classList.add("updating");
             try {
@@ -807,10 +848,12 @@
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message||"Failed");
                 bug.developer = newDeveloper;
-                cell.querySelector(".developer-name").textContent = newDeveloper;
+                const display = cell.querySelector(".developer-display");
+                display.innerHTML = devChipsHTML(newDeveloper) + `<span class="pen">✏</span>`;
                 cell.classList.remove("editing");
+                updateDevDatalist();
             } catch (err) {
-                input.value = old; showError("Developer update failed: " + err.message);
+                showError("Developer update failed: " + err.message);
             } finally { cell.classList.remove("updating","editing"); }
         }
 
@@ -875,9 +918,12 @@
         }
 
         function updateDevDatalist() {
-            const devs = [...new Set(allBugs.map(b => b.developer).filter(Boolean))].sort();
+            const devSet = new Set();
+            allBugs.forEach(b => {
+                if (b.developer) b.developer.split(",").forEach(d => { const t = d.trim(); if (t) devSet.add(t); });
+            });
             const dl = document.getElementById("dev-options");
-            if (dl) dl.innerHTML = devs.map(d => `<option value="${esc(d)}">`).join("");
+            if (dl) dl.innerHTML = [...devSet].sort().map(d => `<option value="${esc(d)}">`).join("");
         }
         function showError(msg) {
             const el = document.getElementById("errorBanner");

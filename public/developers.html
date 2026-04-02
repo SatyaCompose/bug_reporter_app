@@ -583,11 +583,20 @@
             }
         }
 
-        // ── Derive unique developers from all bugs ─────────────────────
+        // ── Derive unique developers from all bugs (handles comma-separated) ──
         function getDevList() {
             const devSet = new Set();
-            allBugs.forEach(b => { if (b.developer && b.developer.trim()) devSet.add(b.developer.trim()); });
+            allBugs.forEach(b => {
+                if (b.developer) b.developer.split(",").forEach(d => { const t = d.trim(); if (t) devSet.add(t); });
+            });
             return [...devSet].sort();
+        }
+
+        // Bugs assigned to a specific developer (supports multi-dev comma list)
+        function bugsForDev(devName) {
+            return allBugs.filter(b =>
+                (b.developer || "").split(",").map(d => d.trim()).includes(devName)
+            );
         }
 
         // ── Encouragement badges ───────────────────────────────────────
@@ -603,11 +612,13 @@
             const devBugCounts = {};
             const devResolveCounts = {};
             allBugsData.forEach(b => {
-                const d = (b.developer || "").trim();
-                if (!d) return;
-                devBugCounts[d]   = (devBugCounts[d]   || 0) + 1;
-                if (b.status === "Resolved" || b.status === "No Fix Required")
-                    devResolveCounts[d] = (devResolveCounts[d] || 0) + 1;
+                (b.developer || "").split(",").forEach(raw => {
+                    const d = raw.trim();
+                    if (!d) return;
+                    devBugCounts[d]   = (devBugCounts[d]   || 0) + 1;
+                    if (b.status === "Resolved" || b.status === "No Fix Required")
+                        devResolveCounts[d] = (devResolveCounts[d] || 0) + 1;
+                });
             });
             const maxResolved = Math.max(...Object.values(devResolveCounts), 0);
             const maxTotal    = Math.max(...Object.values(devBugCounts), 0);
@@ -646,7 +657,7 @@
             lb.style.display = "";
 
             const rows = devs.map(d => {
-                const bugs = allBugs.filter(b => (b.developer || "").trim() === d);
+                const bugs = bugsForDev(d);
                 const resolved = bugs.filter(b => b.status === "Resolved" || b.status === "No Fix Required").length;
                 return { name: d, total: bugs.length, resolved };
             }).sort((a, b) => b.resolved - a.resolved || b.total - a.total);
@@ -671,7 +682,7 @@
         function renderTabs(devs) {
             const tabsEl = document.getElementById("devTabs");
             tabsEl.innerHTML = devs.map((d, i) => {
-                const bugs  = allBugs.filter(b => (b.developer || "").trim() === d);
+                const bugs  = bugsForDev(d);
                 const initials = d.split(/[\s.]+/).map(w => w[0] || "").slice(0, 2).join("").toUpperCase() || "?";
                 return `<button class="dev-tab${i === activeDevIdx ? " active" : ""}" onclick="switchTab(${i})">
                     <div class="dev-tab-avatar">${esc(initials)}</div>
@@ -692,7 +703,7 @@
         function renderPanels(devs) {
             const panelsEl = document.getElementById("devPanels");
             panelsEl.innerHTML = devs.map((devName, panelIdx) => {
-                const bugs = allBugs.filter(b => (b.developer || "").trim() === devName);
+                const bugs = bugsForDev(devName);
                 const total    = bugs.length;
                 const open     = bugs.filter(b => b.status === "Open").length;
                 const inProg   = bugs.filter(b => b.status === "In Progress").length;
@@ -791,7 +802,7 @@
 
             // Build charts after DOM is ready
             devs.forEach((devName, panelIdx) => {
-                const bugs = allBugs.filter(b => (b.developer || "").trim() === devName);
+                const bugs = bugsForDev(devName);
                 buildStatusChart("chart-" + panelIdx, bugs);
                 buildPriorityChart("chart-" + panelIdx + "-p", bugs);
             });
