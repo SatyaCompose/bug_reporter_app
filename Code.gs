@@ -75,7 +75,7 @@ function handleUpdateField(data, field) {
   }
 
   if (field === "status") {
-    const VALID = ["Open", "In Progress", "Resolved", "No Fix Required"];
+    const VALID = ["Open", "In Progress", "Resolved", "No Fix Required", "Completed"];
     if (!VALID.includes(newValue)) {
       return jsonResponse({ success: false, message: "Invalid status: " + newValue });
     }
@@ -114,7 +114,7 @@ function updateFieldInDoc(doc, bugId, field, newValue) {
   const n    = body.getNumChildren();
 
   // Cell background colours
-  const statusColors   = { "Open":"#dbeafe", "In Progress":"#fef3c7", "Resolved":"#d1fae5", "No Fix Required":"#f1f5f9" };
+  const statusColors   = { "Open":"#dbeafe", "In Progress":"#fef3c7", "Resolved":"#d1fae5", "No Fix Required":"#f1f5f9", "Completed":"#dcfce7" };
   const priorityColors = { "Low":"#d1fae5", "Medium":"#fef3c7", "High":"#ffedd5", "Critical":"#fee2e2" };
 
   // Row key to look for
@@ -355,7 +355,7 @@ function appendBugReport(doc, d) {
   }
 
   const pc = { Low:"#d1fae5", Medium:"#fef3c7", High:"#ffedd5", Critical:"#fee2e2" };
-  const sc = { Open:"#dbeafe", "In Progress":"#fef3c7", Resolved:"#d1fae5", "No Fix Required":"#f1f5f9" };
+  const sc = { Open:"#dbeafe", "In Progress":"#fef3c7", Resolved:"#d1fae5", "No Fix Required":"#f1f5f9", Completed:"#dcfce7" };
   if (d.priority && pc[d.priority]) table.getCell(5, 1).setBackgroundColor(pc[d.priority]);
   const statusVal = d.status || "Open";
   if (sc[statusVal]) table.getCell(6, 1).setBackgroundColor(sc[statusVal]);

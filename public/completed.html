@@ -248,6 +248,7 @@
         .s-open           { background:rgba(91,122,248,.1);   color:#a5b4fc;    border:1px solid rgba(91,122,248,.22) }
         .s-inprogress     { background:rgba(245,200,66,.08);  color:var(--yellow);border:1px solid rgba(245,200,66,.2) }
         .s-resolved       { background:rgba(45,212,160,.08);  color:var(--green); border:1px solid rgba(45,212,160,.2) }
+        .s-completed      { background:rgba(34,197,94,.12);   color:#4ade80;      border:1px solid rgba(34,197,94,.3) }
         .s-nofixrequired  { background:rgba(100,116,139,.06); color:#94a3b8;    border:1px solid rgba(100,116,139,.15) }
 
         /* ── Status editable cell ── */
@@ -406,7 +407,12 @@
                 <div class="stat-value" id="statTotal">—</div>
                 <div class="stat-sub" id="statSprints">across — sprints</div>
             </div>
-            <div class="stat-card slate" style="animation-delay:.1s">
+            <div class="stat-card green" style="animation-delay:.1s">
+                <div class="stat-label">Completed</div>
+                <div class="stat-value" id="statDone">—</div>
+                <div class="stat-sub">fully closed out</div>
+            </div>
+            <div class="stat-card slate" style="animation-delay:.12s">
                 <div class="stat-label">No Fix Required</div>
                 <div class="stat-value" id="statNoFix">—</div>
                 <div class="stat-sub">working as intended</div>
@@ -485,8 +491,8 @@
         const docUrls = {};
         let lastFetchAt = 0;
         const CACHE_TTL_MS = 60_000;
-        const COMPLETED_STATUSES = ["No Fix Required"];
-        const ALL_STATUSES = ["Open", "In Progress", "Resolved", "No Fix Required"];
+        const COMPLETED_STATUSES = ["No Fix Required", "Completed"];
+        const ALL_STATUSES = ["Open", "In Progress", "Resolved", "No Fix Required", "Completed"];
 
         // ── Fetch ──────────────────────────────────────────────────────
         async function fetchBugs(force = false) {
@@ -537,11 +543,13 @@
         // ── Stats ──────────────────────────────────────────────────────
         function renderStats(bugs) {
             const total   = bugs.length;
+            const done    = bugs.filter(b => b.status === "Completed").length;
             const noFix   = bugs.filter(b => b.status === "No Fix Required").length;
             const active  = allBugs.filter(b => !COMPLETED_STATUSES.includes(b.status)).length;
             const sprints = new Set(bugs.map(b => b.sprintNumber)).size;
             document.getElementById("statTotal").textContent   = total;
             document.getElementById("statSprints").textContent = "across " + sprints + " sprint" + (sprints !== 1 ? "s" : "");
+            document.getElementById("statDone").textContent    = done;
             document.getElementById("statNoFix").textContent   = noFix;
             document.getElementById("statActive").textContent  = active;
         }
@@ -551,7 +559,7 @@
         function shorten(s, n) { return s && s.length > n ? s.slice(0, n) + "…" : s || ""; }
 
         function sClass(s) {
-            return { Open:"s-open","In Progress":"s-inprogress",Resolved:"s-resolved","No Fix Required":"s-nofixrequired" }[s] || "";
+            return { Open:"s-open","In Progress":"s-inprogress",Resolved:"s-resolved","No Fix Required":"s-nofixrequired",Completed:"s-completed" }[s] || "";
         }
         function pBadge(p) {
             return `<span class="badge ${{ Low:"p-low",Medium:"p-medium",High:"p-high",Critical:"p-critical" }[p]||""}">${esc(p||"—")}</span>`;
