@@ -6,7 +6,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAppsScriptUrl } from "../src/env";
 
-const VALID_STATUSES = ["Open", "In Progress", "Resolved", "Closed"] as const;
+const VALID_STATUSES = ["Open", "In Progress", "Resolved", "No Fix Required", "Completed"] as const;
 
 export default async function handler(
   req: VercelRequest,
