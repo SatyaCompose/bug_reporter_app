@@ -137,17 +137,17 @@
         /* ── Dev tabs ────────────────────────────────── */
         .dev-tabs-wrap {
             display: flex; gap: 8px; flex-wrap: wrap;
-            margin-bottom: 24px; padding-bottom: 4px
+            margin-bottom: 24px
         }
 
         .dev-tab {
             display: flex; align-items: center; gap: 8px;
-            padding: 9px 18px; border-radius: var(--r-sm);
+            padding: 8px 14px 8px 10px; border-radius: var(--r-sm);
             border: 1px solid var(--border-light);
             background: var(--surface2);
             cursor: pointer; transition: all .18s var(--ease);
             font-family: var(--font-body); font-size: 13px; font-weight: 500;
-            color: var(--text-2)
+            color: var(--text-2); max-width: 220px
         }
         .dev-tab:hover { border-color: var(--accent); color: var(--text); background: var(--surface3) }
         .dev-tab.active {
@@ -156,16 +156,22 @@
         }
 
         .dev-tab-avatar {
-            width: 26px; height: 26px; border-radius: 50%;
-            background: linear-gradient(135deg, #5b7af8, #a78bfa);
+            width: 28px; height: 28px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0
+            font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+            letter-spacing: .02em
+        }
+
+        .dev-tab-name {
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            flex: 1; min-width: 0
         }
 
         .dev-tab-count {
             font-family: var(--font-mono); font-size: 10px;
             background: var(--surface3); border: 1px solid var(--border);
-            border-radius: 100px; padding: 1px 7px; color: var(--text-3)
+            border-radius: 100px; padding: 1px 7px; color: var(--text-3);
+            flex-shrink: 0
         }
         .dev-tab.active .dev-tab-count { background: rgba(91,122,248,.15); border-color: rgba(91,122,248,.3); color: #a5b4fc }
 
@@ -183,25 +189,30 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--r);
-            padding: 24px 28px;
+            padding: 22px 26px;
             margin-bottom: 18px;
-            display: flex; align-items: center; gap: 20px;
+            display: flex; align-items: center; gap: 18px;
             box-shadow: var(--shadow)
         }
         .dev-hero-avatar {
-            width: 58px; height: 58px; border-radius: 50%;
-            background: linear-gradient(135deg, #5b7af8, #a78bfa);
+            width: 54px; height: 54px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-family: var(--font-head); font-size: 22px; font-weight: 800;
-            color: #fff; flex-shrink: 0;
-            box-shadow: 0 0 20px rgba(91,122,248,.3)
+            font-family: var(--font-head); font-size: 18px; font-weight: 800;
+            color: #fff; flex-shrink: 0; letter-spacing: .04em;
+            box-shadow: 0 0 18px rgba(91,122,248,.28)
         }
         .dev-hero-info { flex: 1; min-width: 0 }
         .dev-hero-name {
-            font-family: var(--font-head); font-size: 20px; font-weight: 800;
-            letter-spacing: -.02em; color: var(--text)
+            font-family: var(--font-head); font-size: 19px; font-weight: 800;
+            letter-spacing: -.02em; color: var(--text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis
         }
-        .dev-hero-sub { font-size: 12.5px; color: var(--text-3); margin-top: 3px; font-family: var(--font-mono) }
+        .dev-hero-email {
+            font-size: 11.5px; color: var(--text-3); margin-top: 2px;
+            font-family: var(--font-mono);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis
+        }
+        .dev-hero-sub { font-size: 12px; color: var(--text-3); margin-top: 4px; font-family: var(--font-mono) }
         .dev-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px }
         .dev-badge {
             display: inline-flex; align-items: center; gap: 5px;
@@ -392,7 +403,7 @@
             display: flex; align-items: center; justify-content: center;
             font-family: var(--font-head); font-size: 13px; font-weight: 800; color: #fff; flex-shrink: 0
         }
-        .lb-name { flex: 1; font-weight: 500; color: var(--text) }
+        .lb-name { flex: 1; font-weight: 500; color: var(--text); min-width: 0; overflow: hidden }
         .lb-stat { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-3) }
         .lb-bar-wrap { width: 120px; height: 5px; background: var(--border-light); border-radius: 3px; overflow: hidden }
         .lb-bar { height: 100%; border-radius: 3px; background: linear-gradient(90deg,var(--accent),var(--purple)); transition: width .6s var(--ease) }
@@ -637,6 +648,38 @@
             return badges;
         }
 
+        // ── Avatar helpers ─────────────────────────────────────────────
+        const AVATAR_COLORS = [
+            ["#5b7af8","#7c5af8"], ["#f75c6e","#f97316"], ["#2dd4a0","#06b6d4"],
+            ["#f5c842","#fb8c3f"], ["#a78bfa","#ec4899"], ["#34d399","#059669"],
+            ["#60a5fa","#3b82f6"], ["#f472b6","#db2777"],
+        ];
+
+        function avatarGradient(idx) {
+            const [a, b] = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+            return `linear-gradient(135deg,${a},${b})`;
+        }
+
+        // Smart initials: handles emails and plain names
+        function getInitials(name) {
+            if (!name) return "?";
+            const local = name.includes("@") ? name.split("@")[0] : name;
+            const parts = local.split(/[\s._-]+/).filter(Boolean);
+            if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+            if (parts[0] && parts[0].length >= 2) return parts[0].slice(0, 2).toUpperCase();
+            return (local[0] || "?").toUpperCase();
+        }
+
+        // Human-readable display name from email or plain name
+        function getDisplayName(name) {
+            if (!name) return "—";
+            if (!name.includes("@")) return name;
+            const local = name.split("@")[0];
+            return local.split(/[._-]+/)
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(" ");
+        }
+
         // ── Render all ─────────────────────────────────────────────────
         function renderAll() {
             const devs = getDevList();
@@ -666,14 +709,22 @@
 
             const maxResolved = rows[0]?.resolved || 1;
 
+            // keep original index for color consistency with tabs
+            const devList = getDevList();
             document.getElementById("leaderboardRows").innerHTML = rows.map((r, i) => {
-                const rankCls = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
-                const initials = r.name.split(/[\s.]+/).map(w => w[0] || "").slice(0, 2).join("").toUpperCase() || "?";
-                const pct = maxResolved > 0 ? Math.round((r.resolved / maxResolved) * 100) : 0;
+                const rankCls  = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
+                const devIdx   = devList.indexOf(r.name);
+                const initials = getInitials(r.name);
+                const dispName = getDisplayName(r.name);
+                const isEmail  = r.name.includes("@");
+                const pct      = maxResolved > 0 ? Math.round((r.resolved / maxResolved) * 100) : 0;
                 return `<div class="lb-row">
                     <div class="lb-rank ${rankCls}">${i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "#" + (i + 1)}</div>
-                    <div class="lb-avatar">${esc(initials)}</div>
-                    <div class="lb-name">${esc(r.name)}</div>
+                    <div class="lb-avatar" style="background:${avatarGradient(devIdx)}">${esc(initials)}</div>
+                    <div class="lb-name">
+                        <div>${esc(dispName)}</div>
+                        ${isEmail ? `<div style="font-size:10.5px;color:var(--text-3);font-family:var(--font-mono);margin-top:1px">${esc(r.name)}</div>` : ""}
+                    </div>
                     <div class="lb-stat">${r.resolved} resolved · ${r.total} total</div>
                     <div class="lb-bar-wrap"><div class="lb-bar" style="width:${pct}%"></div></div>
                 </div>`;
@@ -684,11 +735,12 @@
         function renderTabs(devs) {
             const tabsEl = document.getElementById("devTabs");
             tabsEl.innerHTML = devs.map((d, i) => {
-                const bugs  = bugsForDev(d);
-                const initials = d.split(/[\s.]+/).map(w => w[0] || "").slice(0, 2).join("").toUpperCase() || "?";
-                return `<button class="dev-tab${i === activeDevIdx ? " active" : ""}" onclick="switchTab(${i})">
-                    <div class="dev-tab-avatar">${esc(initials)}</div>
-                    <span>${esc(d)}</span>
+                const bugs     = bugsForDev(d);
+                const initials = getInitials(d);
+                const dispName = getDisplayName(d);
+                return `<button class="dev-tab${i === activeDevIdx ? " active" : ""}" onclick="switchTab(${i})" title="${esc(d)}">
+                    <div class="dev-tab-avatar" style="background:${avatarGradient(i)}">${esc(initials)}</div>
+                    <span class="dev-tab-name">${esc(dispName)}</span>
                     <span class="dev-tab-count">${bugs.length}</span>
                 </button>`;
             }).join("");
@@ -716,7 +768,9 @@
                 const hi       = bugs.filter(b => b.priority === "High").length;
                 const sprints  = new Set(bugs.map(b => b.sprintNumber)).size;
 
-                const initials = devName.split(/[\s.]+/).map(w => w[0] || "").slice(0, 2).join("").toUpperCase() || "?";
+                const initials  = getInitials(devName);
+                const dispName  = getDisplayName(devName);
+                const isEmail   = devName.includes("@");
                 const badgesList = getEncouragementBadges(devName, bugs, allBugs);
                 const badgesHTML = badgesList.map(b => `<span class="dev-badge ${b.cls}">${b.text}</span>`).join("");
 
@@ -734,9 +788,10 @@
 
                 return `<div class="dev-panel${panelIdx === activeDevIdx ? " active" : ""}" id="panel-${panelIdx}">
                     <div class="dev-hero">
-                        <div class="dev-hero-avatar">${esc(initials)}</div>
+                        <div class="dev-hero-avatar" style="background:${avatarGradient(panelIdx)}">${esc(initials)}</div>
                         <div class="dev-hero-info">
-                            <div class="dev-hero-name">${esc(devName)}</div>
+                            <div class="dev-hero-name">${esc(dispName)}</div>
+                            ${isEmail ? `<div class="dev-hero-email">${esc(devName)}</div>` : ""}
                             <div class="dev-hero-sub">${total} bug${total !== 1 ? "s" : ""} assigned · ${sprints} sprint${sprints !== 1 ? "s" : ""} · ${resolutionRate}% resolution rate</div>
                             <div class="dev-badges">${badgesHTML}</div>
                         </div>
