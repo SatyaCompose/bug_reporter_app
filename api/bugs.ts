@@ -43,11 +43,12 @@ export default async function handler(
   try {
     // Forward query params to Apps Script
     const params = new URLSearchParams();
-    const { sprint, status, priority, assignee } = req.query;
+    const { sprint, status, priority, assignee, developer } = req.query;
     if (sprint) params.set("sprint", String(sprint));
     if (status) params.set("status", String(status));
     if (priority) params.set("priority", String(priority));
     if (assignee) params.set("assignee", String(assignee));
+    if (developer) params.set("developer", String(developer));
 
     const url = `${APPS_SCRIPT_URL}${params.toString() ? "?" + params.toString() : ""}`;
 

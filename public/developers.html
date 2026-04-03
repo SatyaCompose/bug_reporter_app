@@ -616,8 +616,28 @@
             );
         }
 
+        // ── Cross-dev stats (computed once per renderAll) ──────────────
+        function computeDevStats() {
+            const bugCounts     = {};
+            const resolveCounts = {};
+            allBugs.forEach(b => {
+                (b.developer || "").split(",").forEach(raw => {
+                    const d = raw.trim();
+                    if (!d) return;
+                    bugCounts[d]     = (bugCounts[d]     || 0) + 1;
+                    if (b.status === "Resolved" || b.status === "No Fix Required" || b.status === "Completed")
+                        resolveCounts[d] = (resolveCounts[d] || 0) + 1;
+                });
+            });
+            return {
+                maxResolved: Math.max(...Object.values(resolveCounts), 0),
+                maxTotal:    Math.max(...Object.values(bugCounts),     0),
+                resolveCounts,
+            };
+        }
+
         // ── Encouragement badges ───────────────────────────────────────
-        function getEncouragementBadges(name, bugs, allBugsData) {
+        function getEncouragementBadges(name, bugs, devStats) {
             const badges = [];
             const total    = bugs.length;
             const resolved = bugs.filter(b => b.status === "Resolved" || b.status === "No Fix Required" || b.status === "Completed").length;
@@ -625,22 +645,9 @@
             const open     = bugs.filter(b => b.status === "Open").length;
             const inProg   = bugs.filter(b => b.status === "In Progress").length;
 
-            // Top resolver?
-            const devBugCounts = {};
-            const devResolveCounts = {};
-            allBugsData.forEach(b => {
-                (b.developer || "").split(",").forEach(raw => {
-                    const d = raw.trim();
-                    if (!d) return;
-                    devBugCounts[d]   = (devBugCounts[d]   || 0) + 1;
-                    if (b.status === "Resolved" || b.status === "No Fix Required" || b.status === "Completed")
-                        devResolveCounts[d] = (devResolveCounts[d] || 0) + 1;
-                });
-            });
-            const maxResolved = Math.max(...Object.values(devResolveCounts), 0);
-            const maxTotal    = Math.max(...Object.values(devBugCounts), 0);
+            const { maxResolved, maxTotal, resolveCounts } = devStats;
 
-            if (resolved > 0 && (devResolveCounts[name] || 0) === maxResolved) badges.push({ cls: "badge-gold",   text: "🏆 Top Resolver" });
+            if (resolved > 0 && (resolveCounts[name] || 0) === maxResolved) badges.push({ cls: "badge-gold",   text: "🏆 Top Resolver" });
             if (critical > 0 && critical >= 2)    badges.push({ cls: "badge-red",    text: "🔥 Critical Fighter" });
             if (total > 0 && total === maxTotal)   badges.push({ cls: "badge-purple", text: "⚡ Most Active" });
             if (resolved > 0 && resolved === total && total >= 2) badges.push({ cls: "badge-green",  text: "✅ 100% Clear" });
@@ -694,9 +701,10 @@
                 setLoading(false);
                 return;
             }
+            const devStats = computeDevStats();
             renderLeaderboard(devs);
             renderTabs(devs);
-            renderPanels(devs);
+            renderPanels(devs, devStats);
             setLoading(false);
         }
 
@@ -712,12 +720,9 @@
             }).sort((a, b) => b.resolved - a.resolved || b.total - a.total);
 
             const maxResolved = rows[0]?.resolved || 1;
-
-            // keep original index for color consistency with tabs
-            const devList = getDevList();
             document.getElementById("leaderboardRows").innerHTML = rows.map((r, i) => {
                 const rankCls  = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
-                const devIdx   = devList.indexOf(r.name);
+                const devIdx   = devs.indexOf(r.name);
                 const initials = getInitials(r.name);
                 const dispName = getDisplayName(r.name);
                 const isEmail  = r.name.includes("@");
@@ -760,7 +765,7 @@
         }
 
         // ── Per-dev panels ─────────────────────────────────────────────
-        function renderPanels(devs) {
+        function renderPanels(devs, devStats) {
             const panelsEl = document.getElementById("devPanels");
             panelsEl.innerHTML = devs.map((devName, panelIdx) => {
                 const bugs = bugsForDev(devName);
@@ -777,7 +782,7 @@
                 const initials  = getInitials(devName);
                 const dispName  = getDisplayName(devName);
                 const isEmail   = devName.includes("@");
-                const badgesList = getEncouragementBadges(devName, bugs, allBugs);
+                const badgesList = getEncouragementBadges(devName, bugs, devStats);
                 const badgesHTML = badgesList.map(b => `<span class="dev-badge ${b.cls}">${b.text}</span>`).join("");
 
                 const resolutionRate = total > 0 ? Math.round(((resolved + completed + noFix) / total) * 100) : 0;
@@ -834,7 +839,7 @@
                             <div class="stat-value">${noFix}</div>
                             <div class="stat-sub">working as intended</div>
                         </div>
-                        <div class="stat-card red" style="">
+                        <div class="stat-card red">
                             <div class="stat-label">Critical Bugs</div>
                             <div class="stat-value">${critical}</div>
                             <div class="stat-sub">${hi} high priority</div>

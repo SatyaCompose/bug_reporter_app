@@ -14,7 +14,7 @@ export interface BugReportPayload {
   assignee: string;
   pageURL: string;
   priority: "Low" | "Medium" | "High" | "Critical";
-  status: "Open" | "In Progress" | "Resolved" | "Closed";
+  status: "Open" | "In Progress" | "Resolved" | "No Fix Required" | "Completed";
   description: string;
   screenshots: ScreenshotAttachment[]; // array of image objects
   videoURL?: string;
@@ -28,13 +28,15 @@ export interface BugReport {
   title: string;
   reportedBy: string;
   assignee: string;
+  developer: string;
   pageURL: string;
-  priority: string;
-  status: string;
+  priority: "Low" | "Medium" | "High" | "Critical";
+  status: "Open" | "In Progress" | "Resolved" | "No Fix Required" | "Completed";
   description: string;
   screenshots: string; // stored as comma-separated names in doc, returned as string
   videoURL: string;
   prURL?: string;
+  docUrl?: string;
   submittedAt: string;
 }
 
