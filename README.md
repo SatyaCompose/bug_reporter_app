@@ -1,18 +1,24 @@
 # Bug Report System — Vercel + Google Docs
 
-A bug reporting system with a submission form and live dashboard. Bug reports are saved to **Google Docs per sprint**, with full status and assignee management from the dashboard.
+A bug reporting and tracking system with a submission form, live dashboards, and a developer leaderboard. Bug reports are saved to **Google Docs per sprint**, with full status and developer management from the dashboards.
 
 ---
 
 ## Features
 
-- Submit bug reports with title, description, priority, assignee, screenshots, and video URL
+- Submit bug reports with title, description, priority, page URL, doc link, screenshots, and video URL
 - Auto-creates a new Google Doc per sprint; subsequent bugs in the same sprint are appended
-- Live dashboard at `/dashboard.html` — view, filter, and update all bug reports
-- Update bug status (Open → In Progress → Resolved → Closed) directly from the dashboard
-- Update assignee inline from the dashboard
+- **Active Dashboard** (`/index.html`) — view, filter, and manage open bugs
+- **Completed Dashboard** (`/completed.html`) — archive of resolved and closed bugs
+- **Developer Dashboard** (`/developers.html`) — per-developer stats, tabs, and team leaderboard
+- Update bug status (`Open → In Progress → Resolved → No Fix Required → Completed`) inline
+- Assign multiple developers per bug (comma-separated, shown as chips/tags)
+- Developer autocomplete populated from all existing bug data
+- Bugs automatically move to the Completed dashboard when marked `Completed` or `No Fix Required`
 - Charts for status and priority breakdowns
-- Mobile-responsive form and dashboard
+- Bug detail modal with Doc link and Page URL
+- Custom SVG favicon and brand icon
+- Mobile-responsive
 
 ---
 
@@ -21,12 +27,15 @@ A bug reporting system with a submission form and live dashboard. Bug reports ar
 ```
 bug-report/
 ├── public/
-│   ├── index.html          ← Bug submission form
-│   └── dashboard.html      ← Bug dashboard (view, filter, update)
+│   ├── index.html          ← Active bug dashboard (view, filter, update)
+│   ├── completed.html      ← Completed bugs dashboard
+│   ├── developers.html     ← Developer dashboard (tabs, stats, leaderboard)
+│   ├── form.html           ← Bug submission form
+│   └── icon.svg            ← Custom brand icon / favicon
 ├── api/
 │   ├── submit.ts           ← Vercel serverless: handles new bug submissions
 │   ├── bugs.ts             ← Vercel serverless: fetches all bugs from Google Docs
-│   └── update.ts           ← Vercel serverless: updates status or assignee
+│   └── update.ts           ← Vercel serverless: updates status or developer
 ├── src/
 │   ├── env.ts              ← Environment variable loading & validation
 │   └── types.ts            ← Shared TypeScript interfaces
@@ -80,8 +89,10 @@ bug-report/
    ```
 
 4. Open in browser:
-   - Form: `http://localhost:3001/index.html`
-   - Dashboard: `http://localhost:3001/dashboard.html`
+   - Form: `http://localhost:3001/form.html`
+   - Active Dashboard: `http://localhost:3001/index.html`
+   - Completed Dashboard: `http://localhost:3001/completed.html`
+   - Developer Dashboard: `http://localhost:3001/developers.html`
 
 ---
 
@@ -111,13 +122,38 @@ After deploying, add the Apps Script URL:
 
 ---
 
+## Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Bug Form | `/form.html` | Submit a new bug report |
+| Active Dashboard | `/index.html` | Manage open/in-progress bugs |
+| Completed Dashboard | `/completed.html` | View completed and no-fix bugs |
+| Developer Dashboard | `/developers.html` | Per-developer stats and team leaderboard |
+
+---
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/submit` | Submit a new bug report |
-| `GET` | `/api/bugs` | Fetch all bugs (supports `?sprint=`, `?status=`, `?priority=`, `?assignee=` filters) |
-| `POST` | `/api/update` | Update a bug's status or assignee |
+| `GET` | `/api/bugs` | Fetch all bugs (supports `?sprint=`, `?status=`, `?priority=`, `?developer=` filters) |
+| `POST` | `/api/update` | Update a bug's status or developer |
+
+---
+
+## Bug Statuses
+
+| Status | Dashboard |
+|--------|-----------|
+| `Open` | Active |
+| `In Progress` | Active |
+| `Resolved` | Active |
+| `No Fix Required` | Completed |
+| `Completed` | Completed |
+
+Bugs are automatically routed to the correct dashboard based on their status. Marking a bug `Completed` or `No Fix Required` fades it out of the active dashboard and into the completed archive.
 
 ---
 
